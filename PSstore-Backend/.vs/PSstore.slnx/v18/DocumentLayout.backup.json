@@ -1,0 +1,227 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "D:\\PSstore\\PSstore-Backend\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\cart.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\cart.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\PSstore\\Models\\Subscription.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\userpurchasegame.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\userpurchasegame.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\gamesubscription.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\gamesubscription.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\gamecategory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\gamecategory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\usersubscriptionplan.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\usersubscriptionplan.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\admin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\admin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\game.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\game.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\usersregion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\usersregion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\models\\region.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:models\\region.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|d:\\psstore\\psstore-backend\\data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6E51F684-069F-843A-1918-925E8495B9D1}|PSstore.csproj|solutionrelative:data\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Cart.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\Cart.cs",
+              "RelativeDocumentMoniker": "Models\\Cart.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\Cart.cs",
+              "RelativeToolTip": "Models\\Cart.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T12:25:19.411Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "UserPurchaseGame.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\UserPurchaseGame.cs",
+              "RelativeDocumentMoniker": "Models\\UserPurchaseGame.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\UserPurchaseGame.cs",
+              "RelativeToolTip": "Models\\UserPurchaseGame.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:59:45.017Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-01-13T11:50:12.14Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "GameSubscription.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\GameSubscription.cs",
+              "RelativeDocumentMoniker": "Models\\GameSubscription.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\GameSubscription.cs",
+              "RelativeToolTip": "Models\\GameSubscription.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:58:40.487Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "GameCategory.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\GameCategory.cs",
+              "RelativeDocumentMoniker": "Models\\GameCategory.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\GameCategory.cs",
+              "RelativeToolTip": "Models\\GameCategory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:57:37.208Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "UserSubscriptionPlan.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\UserSubscriptionPlan.cs",
+              "RelativeDocumentMoniker": "Models\\UserSubscriptionPlan.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\UserSubscriptionPlan.cs",
+              "RelativeToolTip": "Models\\UserSubscriptionPlan.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:56:58.962Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Subscription.cs",
+              "DocumentMoniker": "D:\\PSstore\\Models\\Subscription.cs",
+              "RelativeDocumentMoniker": "..\\Models\\Subscription.cs",
+              "ToolTip": "D:\\PSstore\\Models\\Subscription.cs",
+              "RelativeToolTip": "..\\Models\\Subscription.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:55:04.007Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Admin.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\Admin.cs",
+              "RelativeDocumentMoniker": "Models\\Admin.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\Admin.cs",
+              "RelativeToolTip": "Models\\Admin.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:54:47.982Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Game.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\Game.cs",
+              "RelativeDocumentMoniker": "Models\\Game.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\Game.cs",
+              "RelativeToolTip": "Models\\Game.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:54:40.827Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "User.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\User.cs",
+              "RelativeDocumentMoniker": "Models\\User.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\User.cs",
+              "RelativeToolTip": "Models\\User.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:51:43.508Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "UsersRegion.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\UsersRegion.cs",
+              "RelativeDocumentMoniker": "Models\\UsersRegion.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\UsersRegion.cs",
+              "RelativeToolTip": "Models\\UsersRegion.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:54:09.877Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Region.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Models\\Region.cs",
+              "RelativeDocumentMoniker": "Models\\Region.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Models\\Region.cs",
+              "RelativeToolTip": "Models\\Region.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:53:58.396Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "D:\\PSstore\\PSstore-Backend\\Data\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "Data\\AppDbContext.cs",
+              "ToolTip": "D:\\PSstore\\PSstore-Backend\\Data\\AppDbContext.cs",
+              "RelativeToolTip": "Data\\AppDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-13T11:50:10.578Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
