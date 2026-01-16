@@ -3,17 +3,17 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PSstore.Models
 {
-    public class SubscriptionPlanRegion
+    public class SubscriptionPlanCountry
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SubscriptionPlanRegionId { get; set; }
+        public int SubscriptionPlanCountryId { get; set; }
 
         [Required]
         public int SubscriptionId { get; set; }
 
         [Required]
-        public int RegionId { get; set; }
+        public int CountryId { get; set; }
 
         [Required]
         public int DurationMonths { get; set; }
@@ -22,16 +22,12 @@ namespace PSstore.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal Price { get; set; }
 
-        [Required]
-        [MaxLength(10)]
-        public string Currency { get; set; } = string.Empty;
-
         // Navigation properties
         [ForeignKey(nameof(SubscriptionId))]
         public SubscriptionPlan SubscriptionPlan { get; set; } = null!;
 
-        [ForeignKey(nameof(RegionId))]
-        public Region Region { get; set; } = null!;
+        [ForeignKey(nameof(CountryId))]
+        public Country Country { get; set; } = null!;
 
         public ICollection<UserSubscriptionPlan> UserSubscriptionPlans { get; set; } = new List<UserSubscriptionPlan>();
     }

@@ -78,7 +78,7 @@ namespace PSstore.Services
                 // Check if game is included in the subscription plan
                 var gameInPlan = await _context.GameSubscriptions
                     .AnyAsync(gs => gs.GameId == gameId && 
-                                   gs.SubscriptionId == activeSubscription.SubscriptionPlanRegion.SubscriptionId);
+                                   gs.SubscriptionId == activeSubscription.SubscriptionPlanCountry.SubscriptionId);
 
                 if (gameInPlan)
                 {
@@ -88,8 +88,8 @@ namespace PSstore.Services
                         GameName = game.GameName,
                         CanAccess = true,
                         AccessType = "SUBSCRIPTION",
-                        Message = $"Included in your {activeSubscription.SubscriptionPlanRegion.SubscriptionPlan.SubscriptionType} subscription",
-                        SubscriptionPlan = activeSubscription.SubscriptionPlanRegion.SubscriptionPlan.SubscriptionType,
+                        Message = $"Included in your {activeSubscription.SubscriptionPlanCountry.SubscriptionPlan.SubscriptionType} subscription",
+                        SubscriptionPlan = activeSubscription.SubscriptionPlanCountry.SubscriptionPlan.SubscriptionType,
                         SubscriptionExpiresOn = activeSubscription.PlanEndDate
                     };
                 }
@@ -161,7 +161,7 @@ namespace PSstore.Services
                 PublishedBy = g.PublishedBy,
                 ReleaseDate = g.ReleaseDate,
                 FreeToPlay = g.FreeToPlay,
-                Price = g.Price,
+                Price = g.BasePrice ?? 0m,
                 IsMultiplayer = g.IsMultiplayer,
                 Categories = g.GameCategories.Select(gc => gc.Category.CategoryName).ToList()
             }).ToList();

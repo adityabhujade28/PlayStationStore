@@ -72,7 +72,7 @@ namespace PSstore.Services
             {
                 UserId = userId,
                 GameId = purchaseDTO.GameId,
-                PurchasePrice = game.Price,
+                PurchasePrice = game.BasePrice ?? 0m,
                 PurchaseDate = DateTime.UtcNow
             };
 

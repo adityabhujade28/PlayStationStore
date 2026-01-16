@@ -13,7 +13,7 @@ namespace PSstore.Models
         public int UserId { get; set; }
 
         [Required]
-        public int SubscriptionPlanRegionId { get; set; }
+        public int SubscriptionPlanCountryId { get; set; }
 
         public DateTime PlanStartDate { get; set; } = DateTime.UtcNow;
 
@@ -23,7 +23,7 @@ namespace PSstore.Models
         [ForeignKey(nameof(UserId))]
         public User User { get; set; } = null!;
 
-        [ForeignKey(nameof(SubscriptionPlanRegionId))]
-        public SubscriptionPlanRegion SubscriptionPlanRegion { get; set; } = null!;
+        [ForeignKey(nameof(SubscriptionPlanCountryId))]
+        public SubscriptionPlanCountry SubscriptionPlanCountry { get; set; } = null!;
     }
 }

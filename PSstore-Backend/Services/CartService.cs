@@ -107,8 +107,8 @@ namespace PSstore.Services
                     CartId = cart.CartId,
                     GameId = cartItemDTO.GameId,
                     Quantity = cartItemDTO.Quantity,
-                    UnitPrice = game.Price,
-                    TotalPrice = cartItemDTO.Quantity * game.Price
+                    UnitPrice = game.BasePrice ?? 0m,
+                    TotalPrice = cartItemDTO.Quantity * (game.BasePrice ?? 0m)
                 };
                 await _cartItemRepository.AddAsync(cartItem);
                 existingItem = cartItem;

@@ -15,6 +15,6 @@ namespace PSstore.Models
 
         // Navigation properties
         public ICollection<GameSubscription> GameSubscriptions { get; set; } = new List<GameSubscription>();
-        public ICollection<SubscriptionPlanRegion> SubscriptionPlanRegions { get; set; } = new List<SubscriptionPlanRegion>();
+        public ICollection<SubscriptionPlanCountry> SubscriptionPlanCountries { get; set; } = new List<SubscriptionPlanCountry>();
     }
 }

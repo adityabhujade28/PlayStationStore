@@ -33,8 +33,12 @@ namespace PSstore.Models
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
 
+        public int? CountryId { get; set; }
+
         // Navigation properties
-        public ICollection<UsersRegion> UsersRegions { get; set; } = new List<UsersRegion>();
+        [ForeignKey(nameof(CountryId))]
+        public Country? Country { get; set; }
+
         public ICollection<UserPurchaseGame> UserPurchasedGames { get; set; } = new List<UserPurchaseGame>();
         public ICollection<UserSubscriptionPlan> UserSubscriptionPlans { get; set; } = new List<UserSubscriptionPlan>();
         public ICollection<Cart> Carts { get; set; } = new List<Cart>();

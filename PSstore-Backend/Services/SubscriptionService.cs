@@ -8,18 +8,18 @@ namespace PSstore.Services
     {
         private readonly IUserSubscriptionPlanRepository _userSubscriptionRepository;
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
-        private readonly ISubscriptionPlanRegionRepository _planRegionRepository;
+        private readonly ISubscriptionPlanCountryRepository _planCountryRepository;
         private readonly IUserRepository _userRepository;
 
         public SubscriptionService(
             IUserSubscriptionPlanRepository userSubscriptionRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
-            ISubscriptionPlanRegionRepository planRegionRepository,
+            ISubscriptionPlanCountryRepository planCountryRepository,
             IUserRepository userRepository)
         {
             _userSubscriptionRepository = userSubscriptionRepository;
             _subscriptionPlanRepository = subscriptionPlanRepository;
-            _planRegionRepository = planRegionRepository;
+            _planCountryRepository = planCountryRepository;
             _userRepository = userRepository;
         }
 
@@ -47,9 +47,9 @@ namespace PSstore.Services
                 };
             }
 
-            // Validate subscription plan region exists
-            var planRegion = await _planRegionRepository.GetByIdAsync(subscriptionDTO.SubscriptionPlanRegionId);
-            if (planRegion == null)
+            // Validate subscription plan country exists
+            var planCountry = await _planCountryRepository.GetByIdAsync(subscriptionDTO.SubscriptionPlanCountryId);
+            if (planCountry == null)
             {
                 return new SubscriptionResponseDTO
                 {
@@ -60,12 +60,12 @@ namespace PSstore.Services
 
             // Create subscription record
             var startDate = DateTime.UtcNow;
-            var endDate = startDate.AddMonths(planRegion.DurationMonths);
+            var endDate = startDate.AddMonths(planCountry.DurationMonths);
 
             var userSubscription = new UserSubscriptionPlan
             {
                 UserId = userId,
-                SubscriptionPlanRegionId = subscriptionDTO.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = subscriptionDTO.SubscriptionPlanCountryId,
                 PlanStartDate = startDate,
                 PlanEndDate = endDate
             };
@@ -85,8 +85,8 @@ namespace PSstore.Services
                 UserSubscriptionId = userSubscription.UserSubscriptionId,
                 PlanStartDate = userSubscription.PlanStartDate,
                 PlanEndDate = userSubscription.PlanEndDate,
-                DurationMonths = planRegion.DurationMonths,
-                Price = planRegion.Price
+                DurationMonths = planCountry.DurationMonths,
+                Price = planCountry.Price
             };
         }
 
@@ -99,7 +99,7 @@ namespace PSstore.Services
             {
                 UserSubscriptionId = subscription.UserSubscriptionId,
                 UserId = subscription.UserId,
-                SubscriptionPlanRegionId = subscription.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = subscription.SubscriptionPlanCountryId,
                 PlanStartDate = subscription.PlanStartDate,
                 PlanEndDate = subscription.PlanEndDate,
                 IsActive = subscription.PlanEndDate >= DateTime.UtcNow
@@ -114,7 +114,7 @@ namespace PSstore.Services
             {
                 UserSubscriptionId = s.UserSubscriptionId,
                 UserId = s.UserId,
-                SubscriptionPlanRegionId = s.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = s.SubscriptionPlanCountryId,
                 PlanStartDate = s.PlanStartDate,
                 PlanEndDate = s.PlanEndDate,
                 IsActive = s.PlanEndDate >= DateTime.UtcNow
@@ -132,19 +132,18 @@ namespace PSstore.Services
             });
         }
 
-        public async Task<IEnumerable<SubscriptionPlanRegionDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int regionId)
+        public async Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int countryId)
         {
-            var options = await _planRegionRepository.GetPlansByRegionAsync(regionId);
+            var options = await _planCountryRepository.GetPlansByCountryAsync(countryId);
             var filtered = options.Where(o => o.SubscriptionId == subscriptionId);
             
-            return filtered.Select(o => new SubscriptionPlanRegionDTO
+            return filtered.Select(o => new SubscriptionPlanCountryDTO
             {
-                SubscriptionPlanRegionId = o.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = o.SubscriptionPlanCountryId,
                 SubscriptionId = o.SubscriptionId,
-                RegionId = o.RegionId,
+                CountryId = o.CountryId,
                 DurationMonths = o.DurationMonths,
-                Price = o.Price,
-                Currency = o.Currency
+                Price = o.Price
             });
         }
 

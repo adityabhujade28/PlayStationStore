@@ -6,8 +6,6 @@ import styles from './Dashboard.module.css';
 function Dashboard() {
   const { token } = useAuth();
   const [games, setGames] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -35,34 +33,6 @@ function Dashboard() {
     }
   };
 
-  const fetchUser = async () => {
-    if (!userId) {
-      setError('Please enter a user ID');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setUsers([data]);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <>
@@ -117,48 +87,6 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className={styles.section}>
-            <h2 className={styles.sectionTitle}>User Lookup</h2>
-            <div className={styles.userInput}>
-              <input
-                type="number"
-                className={styles.userIdInput}
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-                placeholder="Enter User ID"
-              />
-              <button 
-                className={`${styles.fetchButton} ${styles.user}`}
-                onClick={fetchUser}
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Fetch User'}
-              </button>
-            </div>
-
-            {users.length === 0 && !loading && (
-              <div className={styles.emptyState}>
-                No user loaded. Enter a user ID and click "Fetch User".
-              </div>
-            )}
-
-            <div className={styles.grid}>
-              {users.map(user => (
-                <div key={user.userId} className={styles.card}>
-                  <h3 className={styles.cardTitle}>{user.userName}</h3>
-                  <p className={styles.cardDetail}>
-                    <strong>Email:</strong> {user.userEmail}
-                  </p>
-                  <p className={styles.cardDetail}>
-                    <strong>Age:</strong> {user.age || 'N/A'}
-                  </p>
-                  <p className={styles.cardDetail}>
-                    <strong>Joined:</strong> {new Date(user.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </>

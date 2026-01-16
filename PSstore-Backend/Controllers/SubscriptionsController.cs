@@ -24,9 +24,9 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("plans/{subscriptionId}/options")]
-        public async Task<ActionResult<IEnumerable<SubscriptionPlanRegionDTO>>> GetPlanOptions(int subscriptionId, [FromQuery] int regionId)
+        public async Task<ActionResult<IEnumerable<SubscriptionPlanCountryDTO>>> GetPlanOptions(int subscriptionId, [FromQuery] int countryId)
         {
-            var options = await _subscriptionService.GetSubscriptionPlanOptionsAsync(subscriptionId, regionId);
+            var options = await _subscriptionService.GetSubscriptionPlanOptionsAsync(subscriptionId, countryId);
             return Ok(options);
         }
 

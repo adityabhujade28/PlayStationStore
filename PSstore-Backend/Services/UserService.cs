@@ -48,6 +48,7 @@ namespace PSstore.Services
                 UserEmail = createUserDTO.UserEmail,
                 UserPassword = hashedPassword,
                 Age = createUserDTO.Age,
+                CountryId = createUserDTO.CountryId,
                 SubscriptionStatus = null,
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false

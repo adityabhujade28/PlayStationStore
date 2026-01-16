@@ -21,8 +21,7 @@ namespace PSstore.DTOs
         [Range(0, 150)]
         public int? Age { get; set; }
 
-        [Required]
-        public int RegionId { get; set; }
+        public int? CountryId { get; set; }
     }
 
     // Update user details

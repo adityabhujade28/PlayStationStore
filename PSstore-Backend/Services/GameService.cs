@@ -62,7 +62,7 @@ namespace PSstore.Services
                 PublishedBy = game.PublishedBy,
                 ReleaseDate = game.ReleaseDate,
                 FreeToPlay = game.FreeToPlay,
-                Price = game.Price,
+                Price = game.BasePrice ?? 0m,
                 IsMultiplayer = game.IsMultiplayer,
                 CanAccess = accessResult.CanAccess,
                 AccessType = accessResult.AccessType
@@ -77,7 +77,7 @@ namespace PSstore.Services
                 PublishedBy = createGameDTO.PublishedBy,
                 ReleaseDate = createGameDTO.ReleaseDate,
                 FreeToPlay = createGameDTO.FreeToPlay,
-                Price = createGameDTO.Price,
+                BasePrice = createGameDTO.Price,
                 IsMultiplayer = createGameDTO.IsMultiplayer,
                 IsDeleted = false
             };
@@ -97,7 +97,7 @@ namespace PSstore.Services
             if (updateGameDTO.PublishedBy != null) game.PublishedBy = updateGameDTO.PublishedBy;
             if (updateGameDTO.ReleaseDate.HasValue) game.ReleaseDate = updateGameDTO.ReleaseDate;
             if (updateGameDTO.FreeToPlay.HasValue) game.FreeToPlay = updateGameDTO.FreeToPlay.Value;
-            if (updateGameDTO.Price.HasValue) game.Price = updateGameDTO.Price.Value;
+            if (updateGameDTO.Price.HasValue) game.BasePrice = updateGameDTO.Price.Value;
             if (updateGameDTO.IsMultiplayer.HasValue) game.IsMultiplayer = updateGameDTO.IsMultiplayer.Value;
 
             _gameRepository.Update(game);
@@ -126,7 +126,7 @@ namespace PSstore.Services
                 PublishedBy = game.PublishedBy,
                 ReleaseDate = game.ReleaseDate,
                 FreeToPlay = game.FreeToPlay,
-                Price = game.Price,
+                Price = game.BasePrice ?? 0m,
                 IsMultiplayer = game.IsMultiplayer
             };
         }

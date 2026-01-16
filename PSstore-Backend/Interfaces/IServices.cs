@@ -36,7 +36,7 @@ namespace PSstore.Interfaces
         Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(int userId);
         Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(int userId);
         Task<IEnumerable<SubscriptionPlanDTO>> GetAllSubscriptionPlansAsync();
-        Task<IEnumerable<SubscriptionPlanRegionDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int regionId);
+        Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int countryId);
         Task<bool> CancelSubscriptionAsync(int userId);
     }
 

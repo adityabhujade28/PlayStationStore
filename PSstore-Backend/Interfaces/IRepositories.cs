@@ -38,6 +38,18 @@ namespace PSstore.Interfaces
         Task<Region?> GetByCodeAsync(string regionCode);
     }
 
+    public interface ICountryRepository : IRepository<Country>
+    {
+        Task<Country?> GetByCodeAsync(string countryCode);
+        Task<IEnumerable<Country>> GetCountriesByRegionAsync(int regionId);
+    }
+
+    public interface IGameCountryRepository : IRepository<GameCountry>
+    {
+        Task<GameCountry?> GetGamePricingAsync(int gameId, int countryId);
+        Task<IEnumerable<GameCountry>> GetGamePricesByCountryAsync(int countryId);
+    }
+
     public interface IUserPurchaseGameRepository : IRepository<UserPurchaseGame>
     {
         Task<IEnumerable<UserPurchaseGame>> GetUserPurchasesAsync(int userId);
@@ -52,10 +64,10 @@ namespace PSstore.Interfaces
         Task<IEnumerable<SubscriptionPlan>> GetAllPlansWithDetailsAsync();
     }
 
-    public interface ISubscriptionPlanRegionRepository : IRepository<SubscriptionPlanRegion>
+    public interface ISubscriptionPlanCountryRepository : IRepository<SubscriptionPlanCountry>
     {
-        Task<SubscriptionPlanRegion?> GetPlanRegionDetailsAsync(int planRegionId);
-        Task<IEnumerable<SubscriptionPlanRegion>> GetPlansByRegionAsync(int regionId);
+        Task<SubscriptionPlanCountry?> GetPlanCountryDetailsAsync(int planCountryId);
+        Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(int countryId);
     }
 
     public interface IUserSubscriptionPlanRepository : IRepository<UserSubscriptionPlan>

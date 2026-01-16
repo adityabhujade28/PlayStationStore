@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (userName, email, password, age, regionId) => {
+  const signup = async (userName, email, password, age, countryId) => {
     try {
       const response = await fetch('http://localhost:5160/api/users', {
         method: 'POST',
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }) => {
           userEmail: email,
           userPassword: password,
           age,
-          regionId,
+          countryId,
         }),
       });
 

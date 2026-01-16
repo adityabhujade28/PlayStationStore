@@ -21,7 +21,7 @@ namespace PSstore.Models
         public bool FreeToPlay { get; set; } = false;
 
         [Column(TypeName = "decimal(10,2)")]
-        public decimal Price { get; set; }
+        public decimal? BasePrice { get; set; } // Deprecated: Use GameCountry for pricing
 
         public bool IsMultiplayer { get; set; } = false;
 
@@ -29,6 +29,7 @@ namespace PSstore.Models
         public DateTime? DeletedAt { get; set; }
 
         // Navigation properties
+        public ICollection<GameCountry> GameCountries { get; set; } = new List<GameCountry>();
         public ICollection<GameCategory> GameCategories { get; set; } = new List<GameCategory>();
         public ICollection<GameSubscription> GameSubscriptions { get; set; } = new List<GameSubscription>();
         public ICollection<UserPurchaseGame> UserPurchases { get; set; } = new List<UserPurchaseGame>();
