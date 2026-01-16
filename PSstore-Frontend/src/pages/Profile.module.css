@@ -1,0 +1,306 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  min-height: calc(100vh - 100px);
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #2d3436;
+  margin-bottom: 40px;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 18px;
+  color: #636e72;
+}
+
+.error {
+  color: #ff4757;
+}
+
+.profileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.profileCard {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.cardHeader h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2d3436;
+}
+
+.editButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.editButton:hover {
+  transform: translateY(-2px);
+}
+
+.infoList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.infoItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.infoItem:last-child {
+  border-bottom: none;
+}
+
+.infoLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #636e72;
+}
+
+.infoValue {
+  font-size: 16px;
+  color: #2d3436;
+  font-weight: 500;
+}
+
+.securityNote {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #636e72;
+  line-height: 1.6;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.formGroup input,
+.formGroup select {
+  padding: 12px 15px;
+  border: 2px solid #2d2d44;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+  background: #0f0f1e;
+  color: #ffffff;
+}
+
+.formGroup input::placeholder,
+.formGroup select::placeholder {
+  color: #a0a0c0;
+}
+
+.formGroup input:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.formActions {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.saveButton {
+  flex: 1;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.saveButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.saveButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelButton {
+  flex: 1;
+  background: white;
+  color: #636e72;
+  border: 2px solid #e0e0e0;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelButton:hover {
+  background: #f8f9fa;
+}
+
+.historyCard {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.historyCard h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #2d3436;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.emptyHistory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.emptyIcon {
+  font-size: 60px;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.emptyHistory p {
+  font-size: 16px;
+  color: #636e72;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.historyItem {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: transform 0.2s;
+}
+
+.historyItem:hover {
+  transform: translateX(5px);
+}
+
+.historyDate {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3436;
+  min-width: 180px;
+}
+
+.historyDetails {
+  flex: 1;
+  display: flex;
+  gap: 30px;
+  padding: 0 20px;
+}
+
+.historyGames {
+  font-size: 14px;
+  color: #636e72;
+}
+
+.historyTotal {
+  font-size: 16px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.historyId {
+  font-size: 12px;
+  color: #636e72;
+  font-family: monospace;
+  background: white;
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+
+@media (max-width: 1024px) {
+  .profileGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .historyItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .historyDetails {
+    padding: 0;
+    width: 100%;
+  }
+
+  .historyDate {
+    min-width: auto;
+  }
+}

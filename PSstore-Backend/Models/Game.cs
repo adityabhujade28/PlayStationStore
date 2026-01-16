@@ -6,8 +6,7 @@ namespace PSstore.Models
     public class Game
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
 
         [Required]
         [MaxLength(200)]

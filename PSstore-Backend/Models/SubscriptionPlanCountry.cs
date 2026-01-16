@@ -6,14 +6,13 @@ namespace PSstore.Models
     public class SubscriptionPlanCountry
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SubscriptionPlanCountryId { get; set; }
+        public Guid SubscriptionPlanCountryId { get; set; }
 
         [Required]
-        public int SubscriptionId { get; set; }
+        public Guid SubscriptionId { get; set; }
 
         [Required]
-        public int CountryId { get; set; }
+        public Guid CountryId { get; set; }
 
         [Required]
         public int DurationMonths { get; set; }

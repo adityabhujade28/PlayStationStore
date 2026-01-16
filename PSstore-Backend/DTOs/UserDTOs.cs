@@ -21,7 +21,7 @@ namespace PSstore.DTOs
         [Range(0, 150)]
         public int? Age { get; set; }
 
-        public int? CountryId { get; set; }
+        public Guid? CountryId { get; set; }
     }
 
     // Update user details
@@ -52,12 +52,13 @@ namespace PSstore.DTOs
     // Simple user DTO
     public class UserDTO
     {
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
         public int? Age { get; set; }
         public bool SubscriptionStatus { get; set; }
         public DateTime CreatedAt { get; set; }
+        public Guid? CountryId { get; set; }
     }
 
     // User login
@@ -74,7 +75,7 @@ namespace PSstore.DTOs
     // Login response with JWT token
     public class LoginResponseDTO
     {
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;

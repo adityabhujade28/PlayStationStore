@@ -31,7 +31,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<CountryDTO>> GetCountryById(int id)
+        public async Task<ActionResult<CountryDTO>> GetCountryById(Guid id)
         {
             var country = await _countryRepository.GetByIdAsync(id);
             if (country == null)
@@ -47,14 +47,5 @@ namespace PSstore.Controllers
             };
             return Ok(countryDTO);
         }
-    }
-
-    public class CountryDTO
-    {
-        public int CountryId { get; set; }
-        public string CountryCode { get; set; } = string.Empty;
-        public string CountryName { get; set; } = string.Empty;
-        public string Currency { get; set; } = string.Empty;
-        public int RegionId { get; set; }
     }
 }

@@ -18,7 +18,7 @@ namespace PSstore.Services
             _configuration = configuration;
         }
 
-        public async Task<UserDTO?> GetUserByIdAsync(int userId)
+        public async Task<UserDTO?> GetUserByIdAsync(Guid userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             return user != null ? MapToUserDTO(user) : null;
@@ -60,7 +60,7 @@ namespace PSstore.Services
             return MapToUserDTO(user);
         }
 
-        public async Task<UserDTO?> UpdateUserAsync(int userId, UpdateUserDTO updateUserDTO)
+        public async Task<UserDTO?> UpdateUserAsync(Guid userId, UpdateUserDTO updateUserDTO)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return null;
@@ -74,13 +74,13 @@ namespace PSstore.Services
             return MapToUserDTO(user);
         }
 
-        public async Task<bool> SoftDeleteUserAsync(int userId)
+        public async Task<bool> SoftDeleteUserAsync(Guid userId)
         {
             await _userRepository.SoftDeleteAsync(userId);
             return true;
         }
 
-        public async Task<bool> RestoreUserAsync(int userId)
+        public async Task<bool> RestoreUserAsync(Guid userId)
         {
             return await _userRepository.RestoreAsync(userId);
         }
@@ -96,7 +96,7 @@ namespace PSstore.Services
             }
 
             // Generate JWT token
-            var token = _jwtService.GenerateToken(user.UserId, user.UserEmail, user.UserName, "User");
+            var token = _jwtService.GenerateToken(user.UserId, "User");
             var expirationMinutes = Convert.ToDouble(_configuration["JwtSettings:ExpirationMinutes"]);
 
             return new LoginResponseDTO
@@ -109,7 +109,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
+        public async Task<bool> ChangePasswordAsync(Guid userId, string oldPassword, string newPassword)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return false;
@@ -137,7 +137,8 @@ namespace PSstore.Services
                 UserEmail = user.UserEmail,
                 Age = user.Age,
                 SubscriptionStatus = !string.IsNullOrEmpty(user.SubscriptionStatus),
-                CreatedAt = user.CreatedAt
+                CreatedAt = user.CreatedAt,
+                CountryId = user.CountryId
             };
         }
     }

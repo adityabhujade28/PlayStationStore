@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Signup.module.css';
 
-function Signup({ onSwitchToLogin }) {
+function Signup() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     userName: '',
     email: '',
@@ -220,7 +222,7 @@ function Signup({ onSwitchToLogin }) {
         </form>
 
         <div className={styles.loginLink}>
-          Already have an account? <a onClick={onSwitchToLogin}>Login</a>
+          Already have an account? <a onClick={() => navigate('/login')}>Login</a>
         </div>
       </div>
     </div>

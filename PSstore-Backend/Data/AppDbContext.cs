@@ -212,8 +212,8 @@ namespace PSstore.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Seed data
-            SeedData(modelBuilder);
+            // Seed data - temporarily commented out for GUID migration
+            // SeedData(modelBuilder);
 
             // Global query filters for soft delete
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
@@ -222,6 +222,9 @@ namespace PSstore.Data
             modelBuilder.Entity<Category>().HasQueryFilter(c => !c.IsDeleted);
         }
 
+        /*
+        // TEMP: Seed data method commented out for GUID migration
+        // Will be rewritten with Guid IDs or removed in favor of runtime seeding
         private void SeedData(ModelBuilder modelBuilder)
         {
             // Seed Regions
@@ -488,5 +491,6 @@ namespace PSstore.Data
             };
             modelBuilder.Entity<UserSubscriptionPlan>().HasData(subscriptions.ToArray());
         }
+        // END OF COMMENTED SEED DATA METHOD */
     }
 }

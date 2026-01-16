@@ -16,16 +16,16 @@ namespace PSstore.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetAllGames([FromQuery] bool includeDeleted = false)
+        public async Task<ActionResult<IEnumerable<GameDTO>>> GetAllGames([FromQuery] bool includeDeleted = false, [FromQuery] Guid? userId = null)
         {
-            var games = await _gameService.GetAllGamesAsync(includeDeleted);
+            var games = await _gameService.GetAllGamesAsync(includeDeleted, userId);
             return Ok(games);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<GameDTO>> GetGameById(int id)
+        public async Task<ActionResult<GameDTO>> GetGameById(Guid id, [FromQuery] Guid? userId = null)
         {
-            var game = await _gameService.GetGameByIdAsync(id);
+            var game = await _gameService.GetGameByIdAsync(id, userId);
             if (game == null)
                 return NotFound(new { message = "Game not found." });
 
@@ -33,7 +33,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("{id}/access/{userId}")]
-        public async Task<ActionResult<GameWithAccessDTO>> GetGameWithAccess(int id, int userId)
+        public async Task<ActionResult<GameWithAccessDTO>> GetGameWithAccess(Guid id, Guid userId)
         {
             var game = await _gameService.GetGameWithAccessAsync(id, userId);
             if (game == null)
@@ -43,26 +43,26 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> SearchGames([FromQuery] string query)
+        public async Task<ActionResult<IEnumerable<GameDTO>>> SearchGames([FromQuery] string query, [FromQuery] Guid? userId = null)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return BadRequest(new { message = "Search query is required." });
 
-            var games = await _gameService.SearchGamesAsync(query);
+            var games = await _gameService.SearchGamesAsync(query, userId);
             return Ok(games);
         }
 
         [HttpGet("category/{categoryId}")]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetGamesByCategory(int categoryId)
+        public async Task<ActionResult<IEnumerable<GameDTO>>> GetGamesByCategory(Guid categoryId, [FromQuery] Guid? userId = null)
         {
-            var games = await _gameService.GetGamesByCategoryAsync(categoryId);
+            var games = await _gameService.GetGamesByCategoryAsync(categoryId, userId);
             return Ok(games);
         }
 
         [HttpGet("free-to-play")]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetFreeToPlayGames()
+        public async Task<ActionResult<IEnumerable<GameDTO>>> GetFreeToPlayGames([FromQuery] Guid? userId = null)
         {
-            var games = await _gameService.GetFreeToPlayGamesAsync();
+            var games = await _gameService.GetFreeToPlayGamesAsync(userId);
             return Ok(games);
         }
 
@@ -77,7 +77,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<GameDTO>> UpdateGame(int id, [FromBody] UpdateGameDTO updateGameDTO)
+        public async Task<ActionResult<GameDTO>> UpdateGame(Guid id, [FromBody] UpdateGameDTO updateGameDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -90,7 +90,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> SoftDeleteGame(int id)
+        public async Task<ActionResult> SoftDeleteGame(Guid id)
         {
             var result = await _gameService.SoftDeleteGameAsync(id);
             if (!result)
@@ -100,7 +100,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("{id}/restore")]
-        public async Task<ActionResult> RestoreGame(int id)
+        public async Task<ActionResult> RestoreGame(Guid id)
         {
             var result = await _gameService.RestoreGameAsync(id);
             if (!result)

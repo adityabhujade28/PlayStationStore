@@ -15,7 +15,7 @@ namespace PSstore.Services
             _configuration = configuration;
         }
 
-        public string GenerateToken(int userId, string email, string userName, string role)
+        public string GenerateToken(Guid userId, string role)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -23,8 +23,6 @@ namespace PSstore.Services
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, email),
-                new Claim(JwtRegisteredClaimNames.Name, userName),
                 new Claim(ClaimTypes.Role, role),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
@@ -41,7 +39,7 @@ namespace PSstore.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public int? ValidateToken(string token)
+        public Guid? ValidateToken(string token)
         {
             if (string.IsNullOrEmpty(token))
                 return null;
@@ -66,7 +64,11 @@ namespace PSstore.Services
                 var jwtToken = (JwtSecurityToken)validatedToken;
                 var userIdClaim = jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value;
 
-                return int.Parse(userIdClaim);
+                if (Guid.TryParse(userIdClaim, out Guid userId))
+                {
+                    return userId;
+                }
+                return null;
             }
             catch
             {

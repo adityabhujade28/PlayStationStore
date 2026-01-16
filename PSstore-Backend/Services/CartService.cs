@@ -26,7 +26,7 @@ namespace PSstore.Services
             _purchaseService = purchaseService;
         }
 
-        public async Task<CartDTO?> GetUserCartAsync(int userId)
+        public async Task<CartDTO?> GetUserCartAsync(Guid userId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -52,7 +52,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<CartItemDTO> AddItemToCartAsync(int userId, CreateCartItemDTO cartItemDTO)
+        public async Task<CartItemDTO> AddItemToCartAsync(Guid userId, CreateCartItemDTO cartItemDTO)
         {
             // Get or create cart for user
             var cart = await _cartRepository.GetUserCartAsync(userId);
@@ -130,7 +130,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<bool> RemoveItemFromCartAsync(int userId, int cartItemId)
+        public async Task<bool> RemoveItemFromCartAsync(Guid userId, Guid cartItemId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -152,7 +152,7 @@ namespace PSstore.Services
             return true;
         }
 
-        public async Task<bool> UpdateCartItemQuantityAsync(int userId, int cartItemId, int quantity)
+        public async Task<bool> UpdateCartItemQuantityAsync(Guid userId, Guid cartItemId, int quantity)
         {
             if (quantity <= 0)
             {
@@ -181,7 +181,7 @@ namespace PSstore.Services
             return true;
         }
 
-        public async Task<bool> ClearCartAsync(int userId)
+        public async Task<bool> ClearCartAsync(Guid userId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -205,7 +205,7 @@ namespace PSstore.Services
             return true;
         }
 
-        public async Task<CheckoutResultDTO> CheckoutAsync(int userId)
+        public async Task<CheckoutResultDTO> CheckoutAsync(Guid userId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -252,7 +252,7 @@ namespace PSstore.Services
             };
         }
 
-        private async Task<decimal> CalculateCartTotalAsync(int cartId)
+        private async Task<decimal> CalculateCartTotalAsync(Guid cartId)
         {
             var items = await _cartItemRepository.GetCartItemsAsync(cartId);
             return items.Sum(item => item.TotalPrice);

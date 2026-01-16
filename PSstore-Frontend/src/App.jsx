@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import Login from './components/Login';
 import Signup from './components/Signup';
-import Dashboard from './components/Dashboard';
+import GamesStore from './pages/GamesStore';
+import GameDetails from './pages/GameDetails';
+import Cart from './pages/Cart';
+import CheckoutSuccess from './pages/CheckoutSuccess';
+import Library from './pages/Library';
+import Subscriptions from './pages/Subscriptions';
+import Profile from './pages/Profile';
 import './App.css';
 
-function AppContent() {
+function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
-  const [showSignup, setShowSignup] = useState(false);
 
   if (loading) {
     return (
@@ -24,21 +30,106 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated()) {
-    return showSignup ? (
-      <Signup onSwitchToLogin={() => setShowSignup(false)} />
-    ) : (
-      <Login onSwitchToSignup={() => setShowSignup(true)} />
+  return isAuthenticated() ? children : <Navigate to="/login" />;
+}
+
+function AppContent() {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#667eea'
+      }}>
+        Loading...
+      </div>
     );
   }
 
-  return <Dashboard />;
+  return (
+    <Routes>
+      <Route 
+        path="/login" 
+        element={isAuthenticated() ? <Navigate to="/" /> : <Login />} 
+      />
+      <Route 
+        path="/signup" 
+        element={isAuthenticated() ? <Navigate to="/" /> : <Signup />} 
+      />
+      <Route 
+        path="/" 
+        element={
+          <ProtectedRoute>
+            <GamesStore />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/game/:gameId" 
+        element={
+          <ProtectedRoute>
+            <GameDetails />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/cart" 
+        element={
+          <ProtectedRoute>
+            <Cart />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/checkout-success" 
+        element={
+          <ProtectedRoute>
+            <CheckoutSuccess />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/library" 
+        element={
+          <ProtectedRoute>
+            <Library />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/subscriptions" 
+        element={
+          <ProtectedRoute>
+            <Subscriptions />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 }
 
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <CartProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </CartProvider>
     </AuthProvider>
   );
 }

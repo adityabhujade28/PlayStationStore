@@ -8,52 +8,129 @@ namespace PSstore.Services
     {
         private readonly IGameRepository _gameRepository;
         private readonly IEntitlementService _entitlementService;
+        private readonly IGameCountryRepository _gameCountryRepository;
+        private readonly IUserRepository _userRepository;
 
-        public GameService(IGameRepository gameRepository, IEntitlementService entitlementService)
+        public GameService(IGameRepository gameRepository, IEntitlementService entitlementService, IGameCountryRepository gameCountryRepository, IUserRepository userRepository)
         {
             _gameRepository = gameRepository;
             _entitlementService = entitlementService;
+            _gameCountryRepository = gameCountryRepository;
+            _userRepository = userRepository;
         }
 
-        public async Task<GameDTO?> GetGameByIdAsync(int gameId)
+        public async Task<GameDTO?> GetGameByIdAsync(Guid gameId, Guid? userId = null)
         {
             var game = await _gameRepository.GetByIdAsync(gameId);
-            return game != null ? MapToGameDTO(game) : null;
+            if (game == null) return null;
+            
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+            
+            return await MapToGameDTOAsync(game, countryId);
         }
 
-        public async Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false)
+        public async Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false, Guid? userId = null)
         {
             var games = includeDeleted 
                 ? await _gameRepository.GetAllIncludingDeletedAsync()
                 : await _gameRepository.GetAllAsync();
             
-            return games.Select(MapToGameDTO);
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+            
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in games)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+            return gameDtos;
         }
 
-        public async Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm)
+        public async Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm, Guid? userId = null)
         {
             var games = await _gameRepository.SearchGamesAsync(searchTerm);
-            return games.Select(MapToGameDTO);
+            
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+            
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in games)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+            return gameDtos;
         }
 
-        public async Task<IEnumerable<GameDTO>> GetGamesByCategoryAsync(int categoryId)
+        public async Task<IEnumerable<GameDTO>> GetGamesByCategoryAsync(Guid categoryId, Guid? userId = null)
         {
             var games = await _gameRepository.GetGamesByCategoryAsync(categoryId);
-            return games.Select(MapToGameDTO);
+            
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+            
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in games)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+            return gameDtos;
         }
 
-        public async Task<IEnumerable<GameDTO>> GetFreeToPlayGamesAsync()
+        public async Task<IEnumerable<GameDTO>> GetFreeToPlayGamesAsync(Guid? userId = null)
         {
             var games = await _gameRepository.GetFreeGamesAsync();
-            return games.Select(MapToGameDTO);
+            
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+            
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in games)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+            return gameDtos;
         }
 
-        public async Task<GameWithAccessDTO?> GetGameWithAccessAsync(int gameId, int userId)
+        public async Task<GameWithAccessDTO?> GetGameWithAccessAsync(Guid gameId, Guid userId)
         {
             var game = await _gameRepository.GetByIdAsync(gameId);
             if (game == null) return null;
 
             var accessResult = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
+            
+            // Get user's country for pricing
+            var user = await _userRepository.GetByIdAsync(userId);
+            decimal price = game.BasePrice ?? 0m;
+            
+            if (user?.CountryId != null && !game.FreeToPlay)
+            {
+                var gameCountry = await _gameCountryRepository.GetGamePricingAsync(gameId, user.CountryId.Value);
+                if (gameCountry != null)
+                {
+                    price = gameCountry.Price;
+                }
+            }
 
             return new GameWithAccessDTO
             {
@@ -62,7 +139,7 @@ namespace PSstore.Services
                 PublishedBy = game.PublishedBy,
                 ReleaseDate = game.ReleaseDate,
                 FreeToPlay = game.FreeToPlay,
-                Price = game.BasePrice ?? 0m,
+                Price = price,
                 IsMultiplayer = game.IsMultiplayer,
                 CanAccess = accessResult.CanAccess,
                 AccessType = accessResult.AccessType
@@ -85,10 +162,10 @@ namespace PSstore.Services
             await _gameRepository.AddAsync(game);
             await _gameRepository.SaveChangesAsync();
 
-            return MapToGameDTO(game);
+            return await MapToGameDTOAsync(game);
         }
 
-        public async Task<GameDTO?> UpdateGameAsync(int gameId, UpdateGameDTO updateGameDTO)
+        public async Task<GameDTO?> UpdateGameAsync(Guid gameId, UpdateGameDTO updateGameDTO)
         {
             var game = await _gameRepository.GetByIdAsync(gameId);
             if (game == null) return null;
@@ -103,22 +180,34 @@ namespace PSstore.Services
             _gameRepository.Update(game);
             await _gameRepository.SaveChangesAsync();
 
-            return MapToGameDTO(game);
+            return await MapToGameDTOAsync(game);
         }
 
-        public async Task<bool> SoftDeleteGameAsync(int gameId)
+        public async Task<bool> SoftDeleteGameAsync(Guid gameId)
         {
             await _gameRepository.SoftDeleteAsync(gameId);
             return true;
         }
 
-        public async Task<bool> RestoreGameAsync(int gameId)
+        public async Task<bool> RestoreGameAsync(Guid gameId)
         {
             return await _gameRepository.RestoreAsync(gameId);
         }
 
-        private static GameDTO MapToGameDTO(Game game)
+        private async Task<GameDTO> MapToGameDTOAsync(Game game, Guid? countryId = null)
         {
+            decimal price = game.BasePrice ?? 0m;
+            
+            // Get country-specific price if countryId is provided
+            if (countryId.HasValue && !game.FreeToPlay)
+            {
+                var gameCountry = await _gameCountryRepository.GetGamePricingAsync(game.GameId, countryId.Value);
+                if (gameCountry != null)
+                {
+                    price = gameCountry.Price;
+                }
+            }
+            
             return new GameDTO
             {
                 GameId = game.GameId,
@@ -126,7 +215,7 @@ namespace PSstore.Services
                 PublishedBy = game.PublishedBy,
                 ReleaseDate = game.ReleaseDate,
                 FreeToPlay = game.FreeToPlay,
-                Price = game.BasePrice ?? 0m,
+                Price = price,
                 IsMultiplayer = game.IsMultiplayer
             };
         }

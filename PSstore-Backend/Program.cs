@@ -88,6 +88,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     dbContext.Database.Migrate(); // Apply any pending migrations
+    await DbInitializer.InitializeAsync(dbContext); // Seed database if empty
 }
 
 // Use CORS FIRST - before other middleware

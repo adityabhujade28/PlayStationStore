@@ -23,7 +23,7 @@ namespace PSstore.Services
             _userRepository = userRepository;
         }
 
-        public async Task<SubscriptionResponseDTO> SubscribeAsync(int userId, CreateSubscriptionDTO subscriptionDTO)
+        public async Task<SubscriptionResponseDTO> SubscribeAsync(Guid userId, CreateSubscriptionDTO subscriptionDTO)
         {
             // Validate user exists
             var user = await _userRepository.GetByIdAsync(userId);
@@ -90,7 +90,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(int userId)
+        public async Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(Guid userId)
         {
             var subscription = await _userSubscriptionRepository.GetActiveSubscriptionAsync(userId);
             if (subscription == null) return null;
@@ -106,7 +106,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(int userId)
+        public async Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(Guid userId)
         {
             var subscriptions = await _userSubscriptionRepository.GetUserSubscriptionsAsync(userId);
             
@@ -128,11 +128,12 @@ namespace PSstore.Services
             return plans.Select(p => new SubscriptionPlanDTO
             {
                 SubscriptionId = p.SubscriptionId,
-                SubscriptionName = p.SubscriptionType
+                SubscriptionName = p.SubscriptionType,
+                IncludedGames = p.GameSubscriptions?.Select(gs => gs.GameId.ToString()).ToList() ?? new List<string>()
             });
         }
 
-        public async Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int countryId)
+        public async Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(Guid subscriptionId, Guid countryId)
         {
             var options = await _planCountryRepository.GetPlansByCountryAsync(countryId);
             var filtered = options.Where(o => o.SubscriptionId == subscriptionId);
@@ -147,7 +148,7 @@ namespace PSstore.Services
             });
         }
 
-        public async Task<bool> CancelSubscriptionAsync(int userId)
+        public async Task<bool> CancelSubscriptionAsync(Guid userId)
         {
             var activeSubscription = await _userSubscriptionRepository.GetActiveSubscriptionAsync(userId);
             if (activeSubscription == null) return false;

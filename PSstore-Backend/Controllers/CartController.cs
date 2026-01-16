@@ -17,7 +17,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<CartDTO>> GetUserCart(int userId)
+        public async Task<ActionResult<CartDTO>> GetUserCart(Guid userId)
         {
             var cart = await _cartService.GetUserCartAsync(userId);
             if (cart == null)
@@ -27,7 +27,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("user/{userId}/items")]
-        public async Task<ActionResult<CartItemDTO>> AddItemToCart(int userId, [FromBody] CreateCartItemDTO cartItemDTO)
+        public async Task<ActionResult<CartItemDTO>> AddItemToCart(Guid userId, [FromBody] CreateCartItemDTO cartItemDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -44,7 +44,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("user/{userId}/items/{cartItemId}")]
-        public async Task<ActionResult> RemoveItemFromCart(int userId, int cartItemId)
+        public async Task<ActionResult> RemoveItemFromCart(Guid userId, Guid cartItemId)
         {
             var result = await _cartService.RemoveItemFromCartAsync(userId, cartItemId);
             if (!result)
@@ -54,7 +54,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPut("user/{userId}/items/{cartItemId}")]
-        public async Task<ActionResult> UpdateCartItemQuantity(int userId, int cartItemId, [FromBody] int quantity)
+        public async Task<ActionResult> UpdateCartItemQuantity(Guid userId, Guid cartItemId, [FromBody] int quantity)
         {
             if (quantity < 0)
                 return BadRequest(new { message = "Quantity cannot be negative." });
@@ -67,7 +67,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("user/{userId}")]
-        public async Task<ActionResult> ClearCart(int userId)
+        public async Task<ActionResult> ClearCart(Guid userId)
         {
             var result = await _cartService.ClearCartAsync(userId);
             if (!result)
@@ -77,7 +77,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("user/{userId}/checkout")]
-        public async Task<ActionResult<CheckoutResultDTO>> Checkout(int userId)
+        public async Task<ActionResult<CheckoutResultDTO>> Checkout(Guid userId)
         {
             var result = await _cartService.CheckoutAsync(userId);
             

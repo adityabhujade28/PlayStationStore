@@ -1,23 +1,40 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if token exists and is valid on mount
+    // Check if token exists on mount
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
     
-    if (storedToken && storedUser) {
+    if (storedToken) {
       setToken(storedToken);
-      setUser(JSON.parse(storedUser));
     }
     setLoading(false);
   }, []);
+
+  // Decode token to get user info
+  const getDecodedToken = () => {
+    if (!token) return null;
+    
+    try {
+      const decoded = jwtDecode(token);
+      return {
+        userId: decoded.sub, // Guid as string
+        role: decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+        jti: decoded.jti,
+        exp: decoded.exp,
+        iat: decoded.iat
+      };
+    } catch (error) {
+      console.error('Failed to decode token:', error);
+      return null;
+    }
+  };
 
   const login = async (email, password) => {
     try {
@@ -39,19 +56,10 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
       
+      // Only store token in localStorage (remove any old user data)
+      localStorage.removeItem('user'); // Clean up old user data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        userId: data.userId,
-        userName: data.userName,
-        userEmail: data.userEmail,
-      }));
-      
       setToken(data.token);
-      setUser({
-        userId: data.userId,
-        userName: data.userName,
-        userEmail: data.userEmail,
-      });
 
       return { success: true };
     } catch (error) {
@@ -89,9 +97,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('user'); // Clean up old user data
     setToken(null);
-    setUser(null);
   };
 
   const isAuthenticated = () => {
@@ -99,8 +106,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const value = {
-    user,
     token,
+    getDecodedToken,
     login,
     signup,
     logout,

@@ -20,7 +20,7 @@ namespace PSstore.Controllers
 
         [HttpGet("{id}")]
         [Authorize]
-        public async Task<ActionResult<UserDTO>> GetUserById(int id)
+        public async Task<ActionResult<UserDTO>> GetUserById(Guid id)
         {
             var user = await _userService.GetUserByIdAsync(id);
             if (user == null)
@@ -58,7 +58,7 @@ namespace PSstore.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<ActionResult<UserDTO>> UpdateUser(int id, [FromBody] UpdateUserDTO updateUserDTO)
+        public async Task<ActionResult<UserDTO>> UpdateUser(Guid id, [FromBody] UpdateUserDTO updateUserDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -71,7 +71,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> SoftDeleteUser(int id)
+        public async Task<ActionResult> SoftDeleteUser(Guid id)
         {
             var result = await _userService.SoftDeleteUserAsync(id);
             if (!result)
@@ -81,7 +81,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("{id}/restore")]
-        public async Task<ActionResult> RestoreUser(int id)
+        public async Task<ActionResult> RestoreUser(Guid id)
         {
             var result = await _userService.RestoreUserAsync(id);
             if (!result)
@@ -104,7 +104,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("{id}/change-password")]
-        public async Task<ActionResult> ChangePassword(int id, [FromBody] ChangePasswordDTO changePasswordDTO)
+        public async Task<ActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordDTO changePasswordDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -117,14 +117,14 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("{userId}/library")]
-        public async Task<ActionResult<UserLibraryDTO>> GetUserLibrary(int userId)
+        public async Task<ActionResult<UserLibraryDTO>> GetUserLibrary(Guid userId)
         {
             var library = await _entitlementService.GetUserLibraryAsync(userId);
             return Ok(library);
         }
 
         [HttpGet("{userId}/games/{gameId}/access")]
-        public async Task<ActionResult<GameAccessResultDTO>> CheckGameAccess(int userId, int gameId)
+        public async Task<ActionResult<GameAccessResultDTO>> CheckGameAccess(Guid userId, Guid gameId)
         {
             var result = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
             return Ok(result);

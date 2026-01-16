@@ -6,8 +6,7 @@ namespace PSstore.Models
     public class Region
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int RegionId { get; set; }
+        public Guid RegionId { get; set; }
 
         [Required]
         [MaxLength(10)]

@@ -6,14 +6,13 @@ namespace PSstore.Models
     public class GameCountry
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int GameCountryId { get; set; }
+        public Guid GameCountryId { get; set; }
 
         [Required]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
 
         [Required]
-        public int CountryId { get; set; }
+        public Guid CountryId { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(10,2)")]

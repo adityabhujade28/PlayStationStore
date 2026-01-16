@@ -6,14 +6,13 @@ namespace PSstore.Models
     public class CartItem
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int CartItemId { get; set; }
+        public Guid CartItemId { get; set; }
 
         [Required]
-        public int CartId { get; set; }
+        public Guid CartId { get; set; }
 
         [Required]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
 
         [Required]
         public int Quantity { get; set; } = 1;

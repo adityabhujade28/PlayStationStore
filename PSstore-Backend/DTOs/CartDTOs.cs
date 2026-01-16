@@ -6,7 +6,7 @@ namespace PSstore.DTOs
     public class CreateCartItemDTO
     {
         [Required]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
 
         [Range(1, int.MaxValue)]
         public int Quantity { get; set; } = 1;
@@ -15,8 +15,8 @@ namespace PSstore.DTOs
     // Cart item response
     public class CartItemDTO
     {
-        public int CartItemId { get; set; }
-        public int GameId { get; set; }
+        public Guid CartItemId { get; set; }
+        public Guid GameId { get; set; }
         public string GameName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
@@ -26,8 +26,8 @@ namespace PSstore.DTOs
     // User's cart
     public class CartDTO
     {
-        public int CartId { get; set; }
-        public int UserId { get; set; }
+        public Guid CartId { get; set; }
+        public Guid UserId { get; set; }
         public List<CartItemDTO> Items { get; set; } = new List<CartItemDTO>();
         public decimal TotalAmount { get; set; }
     }
@@ -46,7 +46,7 @@ namespace PSstore.DTOs
     public class AddToCartDTO
     {
         [Required]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
     }
 
     public class CheckoutDTO

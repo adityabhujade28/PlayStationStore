@@ -1,13 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
 import styles from './Dashboard.module.css';
 
 function Dashboard() {
-  const { token } = useAuth();
+  const { token, getDecodedToken } = useAuth();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userInfo, setUserInfo] = useState(null);
+
+  useEffect(() => {
+    // Decode token to get userId
+    const decoded = getDecodedToken();
+    if (decoded) {
+      // Optionally fetch full user details from API
+      fetchUserDetails(decoded.userId);
+    }
+  }, [token]);
+
+  const fetchUserDetails = async (userId) => {
+    try {
+      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUserInfo(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user details:', err);
+    }
+  };
 
   const fetchGames = async () => {
     setLoading(true);

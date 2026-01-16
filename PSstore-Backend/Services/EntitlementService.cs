@@ -24,7 +24,7 @@ namespace PSstore.Services
             _subscriptionRepository = subscriptionRepository;
         }
 
-        public async Task<GameAccessResultDTO> CanUserAccessGameAsync(int userId, int gameId)
+        public async Task<GameAccessResultDTO> CanUserAccessGameAsync(Guid userId, Guid gameId)
         {
             // Get game details
             var game = await _gameRepository.GetByIdAsync(gameId);
@@ -106,7 +106,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<UserLibraryDTO> GetUserLibraryAsync(int userId)
+        public async Task<UserLibraryDTO> GetUserLibraryAsync(Guid userId)
         {
             var library = new UserLibraryDTO
             {
@@ -144,7 +144,7 @@ namespace PSstore.Services
             return library;
         }
 
-        public async Task<IEnumerable<GameDTO>> GetSubscriptionGamesAsync(int subscriptionPlanId)
+        public async Task<IEnumerable<GameDTO>> GetSubscriptionGamesAsync(Guid subscriptionPlanId)
         {
             var games = await _context.GameSubscriptions
                 .Where(gs => gs.SubscriptionId == subscriptionPlanId)
@@ -167,7 +167,7 @@ namespace PSstore.Services
             }).ToList();
         }
 
-        public async Task<bool> HasAnyEntitlementsAsync(int userId)
+        public async Task<bool> HasAnyEntitlementsAsync(Guid userId)
         {
             // Check if user has any purchases
             var hasPurchases = await _context.UserPurchaseGames

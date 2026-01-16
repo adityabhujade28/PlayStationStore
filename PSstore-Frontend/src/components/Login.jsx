@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 
-function Login({ onSwitchToSignup }) {
+function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,7 +67,7 @@ function Login({ onSwitchToSignup }) {
         </form>
 
         <div className={styles.signupLink}>
-          Don't have an account? <a onClick={onSwitchToSignup}>Sign up</a>
+          Don't have an account? <a onClick={() => navigate('/signup')}>Sign up</a>
         </div>
       </div>
     </div>

@@ -24,14 +24,14 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("plans/{subscriptionId}/options")]
-        public async Task<ActionResult<IEnumerable<SubscriptionPlanCountryDTO>>> GetPlanOptions(int subscriptionId, [FromQuery] int countryId)
+        public async Task<ActionResult<IEnumerable<SubscriptionPlanCountryDTO>>> GetPlanOptions(Guid subscriptionId, [FromQuery] Guid countryId)
         {
             var options = await _subscriptionService.GetSubscriptionPlanOptionsAsync(subscriptionId, countryId);
             return Ok(options);
         }
 
         [HttpPost]
-        public async Task<ActionResult<SubscriptionResponseDTO>> Subscribe([FromBody] CreateSubscriptionDTO subscriptionDTO, [FromQuery] int userId)
+        public async Task<ActionResult<SubscriptionResponseDTO>> Subscribe([FromBody] CreateSubscriptionDTO subscriptionDTO, [FromQuery] Guid userId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -45,7 +45,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("user/{userId}/active")]
-        public async Task<ActionResult<UserSubscriptionDTO>> GetActiveSubscription(int userId)
+        public async Task<ActionResult<UserSubscriptionDTO>> GetActiveSubscription(Guid userId)
         {
             var subscription = await _subscriptionService.GetActiveSubscriptionAsync(userId);
             if (subscription == null)
@@ -55,14 +55,14 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("user/{userId}/history")]
-        public async Task<ActionResult<IEnumerable<UserSubscriptionDTO>>> GetUserSubscriptionHistory(int userId)
+        public async Task<ActionResult<IEnumerable<UserSubscriptionDTO>>> GetUserSubscriptionHistory(Guid userId)
         {
             var subscriptions = await _subscriptionService.GetUserSubscriptionHistoryAsync(userId);
             return Ok(subscriptions);
         }
 
         [HttpDelete("user/{userId}")]
-        public async Task<ActionResult> CancelSubscription(int userId)
+        public async Task<ActionResult> CancelSubscription(Guid userId)
         {
             var result = await _subscriptionService.CancelSubscriptionAsync(userId);
             if (!result)

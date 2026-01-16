@@ -6,14 +6,13 @@ namespace PSstore.Models
     public class UserSubscriptionPlan
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int UserSubscriptionId { get; set; }
+        public Guid UserSubscriptionId { get; set; }
 
         [Required]
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
 
         [Required]
-        public int SubscriptionPlanCountryId { get; set; }
+        public Guid SubscriptionPlanCountryId { get; set; }
 
         public DateTime PlanStartDate { get; set; } = DateTime.UtcNow;
 

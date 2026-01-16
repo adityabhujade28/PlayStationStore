@@ -6,8 +6,7 @@ namespace PSstore.Models
     public class Country
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int CountryId { get; set; }
+        public Guid CountryId { get; set; }
 
         [Required]
         [MaxLength(10)]
@@ -18,7 +17,7 @@ namespace PSstore.Models
         public string CountryName { get; set; } = string.Empty; // e.g., "United States", "United Kingdom"
 
         [Required]
-        public int RegionId { get; set; }
+        public Guid RegionId { get; set; }
 
         [Required]
         [MaxLength(10)]

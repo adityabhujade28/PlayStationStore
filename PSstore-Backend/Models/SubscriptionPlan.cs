@@ -6,8 +6,7 @@ namespace PSstore.Models
     public class SubscriptionPlan
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SubscriptionId { get; set; }
+        public Guid SubscriptionId { get; set; }
 
         [Required]
         [MaxLength(100)]

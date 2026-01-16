@@ -6,8 +6,7 @@ namespace PSstore.Models
     public class User
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
 
         [Required]
         [MaxLength(100)]
@@ -33,7 +32,7 @@ namespace PSstore.Models
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
 
-        public int? CountryId { get; set; }
+        public Guid? CountryId { get; set; }
 
         // Navigation properties
         [ForeignKey(nameof(CountryId))]
