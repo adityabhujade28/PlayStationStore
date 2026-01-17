@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import styles from './Profile.module.css';
+import apiClient from '../utils/apiClient';
 
 function Profile() {
-  const { token, getDecodedToken } = useAuth();
+  const { getDecodedToken } = useAuth();
   const [user, setUser] = useState(null);
   const [country, setCountry] = useState(null);
   const [countries, setCountries] = useState([]);
@@ -31,11 +32,7 @@ function Profile() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.get(`/users/${userId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -48,14 +45,7 @@ function Profile() {
         });
 
         if (data.countryId) {
-          const countryResponse = await fetch(
-            `http://localhost:5160/api/countries/${data.countryId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
+          const countryResponse = await apiClient.get(`/countries/${data.countryId}`);
           if (countryResponse.ok) {
             const countryData = await countryResponse.json();
             setCountry(countryData);
@@ -73,11 +63,7 @@ function Profile() {
 
   const fetchCountries = async () => {
     try {
-      const response = await fetch('http://localhost:5160/api/countries', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.get('/countries');
 
       if (response.ok) {
         const data = await response.json();
@@ -95,14 +81,7 @@ function Profile() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await apiClient.put(`/users/${userId}`, formData);
 
       if (response.ok) {
         alert('Profile updated successfully!');

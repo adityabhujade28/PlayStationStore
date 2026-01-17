@@ -65,5 +65,6 @@ namespace PSstore.DTOs
         public DateTime PlanStartDate { get; set; }
         public DateTime PlanEndDate { get; set; }
         public bool IsActive { get; set; }
+        public string SubscriptionName { get; set; } = string.Empty;
     }
 }

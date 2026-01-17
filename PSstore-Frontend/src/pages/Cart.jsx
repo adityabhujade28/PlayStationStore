@@ -4,18 +4,21 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/currency';
 import styles from './Cart.module.css';
+import apiClient from '../utils/apiClient';
 
 function Cart() {
-  const { token, getDecodedToken } = useAuth();
-  const { cart, fetchCart, removeFromCart, updateQuantity, loading } = useCart();
+  const { getDecodedToken, isAuthenticated } = useAuth();
+  // Fixed: use cartItems and fetchCartItems from context
+  const { cartItems, fetchCartItems, removeFromCart, loading } = useCart();
   const navigate = useNavigate();
   const [userCurrency, setUserCurrency] = useState('INR');
   const [processingCheckout, setProcessingCheckout] = useState(false);
 
   useEffect(() => {
-    fetchCart();
+    // Fixed: calling fetchCartItems
+    fetchCartItems();
     fetchUserCurrency();
-  }, []);
+  }, [isAuthenticated]);
 
   const fetchUserCurrency = async () => {
     try {
@@ -24,24 +27,13 @@ function Cart() {
 
       if (!userId) return;
 
-      const userResponse = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const userResponse = await apiClient.get(`/users/${userId}`);
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
-        
+
         if (userData.countryId) {
-          const countryResponse = await fetch(
-            `http://localhost:5160/api/countries/${userData.countryId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
+          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
 
           if (countryResponse.ok) {
             const countryData = await countryResponse.json();
@@ -61,26 +53,13 @@ function Cart() {
     }
   };
 
-  const handleUpdateQuantity = async (cartItemId, newQuantity) => {
-    if (newQuantity < 1) return;
-    const result = await updateQuantity(cartItemId, newQuantity);
-    if (!result.success) {
-      alert(result.error || 'Failed to update quantity');
-    }
-  };
-
   const handleCheckout = async () => {
     setProcessingCheckout(true);
     try {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(`http://localhost:5160/api/cart/user/${userId}/checkout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.post(`/cart/user/${userId}/checkout`, {});
 
       if (response.ok) {
         const data = await response.json();
@@ -96,7 +75,8 @@ function Cart() {
     }
   };
 
-  if (!cart || cart.items?.length === 0) {
+  // Fixed rendering condition using cartItems
+  if (!loading && (!cartItems || cartItems.length === 0)) {
     return (
       <div className={styles.container}>
         <div className={styles.emptyCart}>
@@ -111,18 +91,20 @@ function Cart() {
     );
   }
 
-  const subtotal = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = cart.items[0]?.taxRate ? (subtotal * cart.items[0].taxRate) : 0;
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  const tax = cartItems[0]?.taxRate ? (subtotal * cartItems[0].taxRate) : 0;
   const total = subtotal + tax;
-  console.log('Cart totals:', { subtotal, tax, total });
 
   return (
     <div className={styles.container}>
+      <button className={styles.backButton} onClick={() => navigate('/')}>
+        ← Back
+      </button>
       <h1 className={styles.title}>Shopping Cart</h1>
-      
+
       <div className={styles.cartContent}>
         <div className={styles.cartItems}>
-          {cart.items.map((item) => (
+          {cartItems.map((item) => (
             <div key={item.cartItemId} className={styles.cartItem}>
               <div className={styles.itemImage}>
                 <div className={styles.placeholder}>🎮</div>
@@ -131,9 +113,9 @@ function Cart() {
                 <h3 className={styles.itemName}>{item.gameName}</h3>
                 <p className={styles.itemPublisher}>{item.publisher}</p>
               </div>
-              {/*  */}  
+              {/*  */}
               <div className={styles.itemPrice}>
-                {formatPrice(item.price, userCurrency)}
+                {formatPrice(item.unitPrice, userCurrency)}
               </div>
               <button
                 className={styles.removeButton}
@@ -153,7 +135,7 @@ function Cart() {
             <span>{formatPrice(subtotal, userCurrency)}</span>
           </div>
           <div className={styles.summaryRow}>
-            <span>Tax ({(cart.items[0]?.taxRate * 100).toFixed(0)}%):</span>
+            <span>Tax ({(cartItems[0]?.taxRate * 100).toFixed(0)}%):</span>
             <span>{formatPrice(tax, userCurrency)}</span>
           </div>
           <div className={styles.summaryDivider}></div>

@@ -12,6 +12,23 @@
   margin-bottom: 30px;
 }
 
+.backButton {
+  background: transparent;
+  border: 1px solid #2d2d2d;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 24px;
+  transition: all 0.2s;
+}
+
+.backButton:hover {
+  background: #2d2d2d;
+  border-color: #0078d4;
+}
+
 .emptyCart {
   display: flex;
   flex-direction: column;

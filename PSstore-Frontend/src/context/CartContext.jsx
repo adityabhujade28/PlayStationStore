@@ -1,202 +1,185 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import apiClient from '../utils/apiClient';
 
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const { token, getDecodedToken } = useAuth();
-  const [cart, setCart] = useState(null);
-  const [cartItemCount, setCartItemCount] = useState(0);
+  const { token, getDecodedToken, isAuthenticated } = useAuth();
+  const [cartCount, setCartCount] = useState(0);
+  const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (token) {
-      fetchCart();
+    if (isAuthenticated()) {
+      fetchCartCount();
+    } else {
+      setCartCount(0);
+      setCartItems([]);
     }
-  }, [token]);
+  }, [token, isAuthenticated]); // Added isAuthenticated to dependency array
 
-  const fetchCart = async () => {
+  const fetchCartCount = async () => {
     try {
       const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+      if (!decoded) return;
 
-      if (!userId) return;
+      const userId = decoded.userId;
 
-      const response = await fetch(`http://localhost:5160/api/cart/user/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      // Use the correct endpoint for getting user cart
+      const response = await apiClient.get(`/cart/user/${userId}`);
 
       if (response.ok) {
         const data = await response.json();
-        setCart(data);
-        setCartItemCount(data.items?.length || 0);
+        // The API returns CartDTO { items: [...] }
+        const count = data.items?.length || 0;
+        setCartCount(count);
       }
     } catch (err) {
-      console.error('Failed to fetch cart:', err);
+      console.error('Failed to fetch cart count:', err);
+    }
+  };
+
+  const fetchCartItems = async () => {
+    setLoading(true);
+    try {
+      const decoded = getDecodedToken();
+      if (!decoded) return;
+
+      const userId = decoded.userId;
+
+      // Corrected endpoint: POST /cart/user/{userId}/items usually adds, GET /cart/user/{userId} gets the whole cart
+      // The backend has GET /api/Cart/user/{userId} which returns CartDTO
+      const response = await apiClient.get(`/cart/user/${userId}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        const items = data.items || [];
+        setCartItems(items);
+        setCartCount(items.length);
+      } else {
+        console.error('Failed to fetch cart:', response.status);
+      }
+    } catch (err) {
+      console.error('Failed to fetch cart items:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const addToCart = async (gameId) => {
-    setLoading(true);
+    if (!isAuthenticated()) return { success: false, message: 'Please login to add to cart' };
+
     try {
       const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+      const userId = decoded.userId;
 
-      const response = await fetch(`http://localhost:5160/api/cart/user/${userId}/items`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          gameId: gameId,
-          quantity: 1
-        })
+      // Corrected endpoint: POST /api/Cart/user/{userId}/items
+      const response = await apiClient.post(`/cart/user/${userId}/items`, {
+        userId, // Redundant if in URL, but backend might expect it in DTO
+        gameId,
+        quantity: 1
       });
 
       if (response.ok) {
-        await fetchCart();
+        await fetchCartCount();
         return { success: true };
       } else {
-        const error = await response.json();
-        return { success: false, error: error.message || 'Failed to add to cart' };
+        let errorMsg = 'Failed to add to cart';
+        try {
+          const error = await response.json();
+          errorMsg = error.message || errorMsg;
+        } catch (e) { /* ignore json parse error */ }
+        return { success: false, message: errorMsg };
       }
     } catch (err) {
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
+      return { success: false, message: err.message };
     }
   };
 
   const removeFromCart = async (cartItemId) => {
-    setLoading(true);
     try {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(
-        `http://localhost:5160/api/cart/user/${userId}/items/${cartItemId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      if (!userId) return { success: false, message: "User not found" };
+
+      // Corrected endpoint: DELETE /api/Cart/user/{userId}/items/{cartItemId}
+      const response = await apiClient.delete(`/cart/user/${userId}/items/${cartItemId}`);
 
       if (response.ok) {
-        await fetchCart();
+        await fetchCartItems(); // Refresh items and count
         return { success: true };
       } else {
-        return { success: false, error: 'Failed to remove item' };
+        return { success: false, message: 'Failed to remove item' };
       }
     } catch (err) {
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
+      return { success: false, message: err.message };
     }
   };
 
-  const updateQuantity = async (cartItemId, quantity) => {
-    setLoading(true);
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      const response = await fetch(
-        `http://localhost:5160/api/cart/user/${userId}/items/${cartItemId}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(quantity)
-        }
-      );
-
-      if (response.ok) {
-        await fetchCart();
-        return { success: true };
-      } else {
-        return { success: false, error: 'Failed to update quantity' };
-      }
-    } catch (err) {
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
-    }
-  };
+  // updateQuantity is removed as per the provided edit.
 
   const clearCart = async () => {
-    setLoading(true);
     try {
       const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+      const userId = decoded.userId;
 
-      const response = await fetch(`http://localhost:5160/api/cart/user/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.delete(`/cart/user/${userId}`);
 
       if (response.ok) {
-        setCart(null);
-        setCartItemCount(0);
+        setCartItems([]);
+        setCartCount(0);
         return { success: true };
       }
       return { success: false };
     } catch (err) {
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
+      console.error('Failed to clear cart:', err);
+      return { success: false };
     }
   };
 
   const checkout = async () => {
-    setLoading(true);
     try {
       const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+      const userId = decoded.userId;
 
-      const response = await fetch(`http://localhost:5160/api/cart/user/${userId}/checkout`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.post(`/cart/user/${userId}/checkout`, {});
 
       if (response.ok) {
         const data = await response.json();
-        await fetchCart();
-        return { success: true, data };
+        setCartItems([]);
+        setCartCount(0);
+        return { success: true, data }; // Return data for checkout-success
       } else {
-        const error = await response.json();
-        return { success: false, error: error.message || 'Checkout failed' };
+        let errorMsg = 'Checkout failed';
+        try {
+          const error = await response.json();
+          errorMsg = error.message || errorMsg;
+        } catch (e) { /* ignore */ }
+        return { success: false, message: errorMsg };
       }
     } catch (err) {
-      return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
+      return { success: false, message: err.message };
     }
   };
 
   const value = {
-    cart,
-    cartItemCount,
+    cartCount,
+    cartItems,
     loading,
-    fetchCart,
+    fetchCartItems,
     addToCart,
     removeFromCart,
-    updateQuantity,
     clearCart,
     checkout
   };
 
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider value={value}>
+      {children}
+    </CartContext.Provider>
+  );
 };
 
 export const useCart = () => {

@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
 import styles from './Subscriptions.module.css';
+import apiClient from '../utils/apiClient';
 
 function Subscriptions() {
-  const { token, getDecodedToken } = useAuth();
+  const { getDecodedToken, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [activeSubscription, setActiveSubscription] = useState(null);
@@ -29,24 +30,13 @@ function Subscriptions() {
 
       if (!userId) return;
 
-      const userResponse = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const userResponse = await apiClient.get(`/users/${userId}`);
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
-        
+
         if (userData.countryId) {
-          const countryResponse = await fetch(
-            `http://localhost:5160/api/countries/${userData.countryId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
+          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
 
           if (countryResponse.ok) {
             const countryData = await countryResponse.json();
@@ -65,11 +55,7 @@ function Subscriptions() {
       const userId = decoded?.userId;
 
       // First get user's country
-      const userResponse = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const userResponse = await apiClient.get(`/users/${userId}`);
 
       let userCountryId = null;
       if (userResponse.ok) {
@@ -78,30 +64,16 @@ function Subscriptions() {
       }
 
       // Get all subscription plans
-      const plansResponse = await fetch(
-        `http://localhost:5160/api/Subscriptions/plans`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const plansResponse = await apiClient.get(`/Subscriptions/plans`);
 
       if (plansResponse.ok) {
         const plansData = await plansResponse.json();
-        
+
         // For each plan, get pricing options for user's country
         if (userCountryId) {
           const plansWithPricing = await Promise.all(
             plansData.map(async (plan) => {
-              const optionsResponse = await fetch(
-                `http://localhost:5160/api/Subscriptions/plans/${plan.subscriptionId}/options?countryId=${userCountryId}`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                }
-              );
+              const optionsResponse = await apiClient.get(`/Subscriptions/plans/${plan.subscriptionId}/options?countryId=${userCountryId}`);
 
               if (optionsResponse.ok) {
                 const options = await optionsResponse.json();
@@ -132,23 +104,14 @@ function Subscriptions() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(
-        `http://localhost:5160/api/Subscriptions/user/${userId}/active`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await apiClient.get(`/Subscriptions/user/${userId}/active`);
 
       if (response.ok) {
         const data = await response.json();
 
         // Enrich active subscription with plan details (name, included games count)
         try {
-          const plansRes = await fetch(`http://localhost:5160/api/Subscriptions/plans`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const plansRes = await apiClient.get(`/Subscriptions/plans`);
 
           if (plansRes.ok) {
             const plans = await plansRes.json();
@@ -178,19 +141,9 @@ function Subscriptions() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(
-        `http://localhost:5160/api/Subscriptions?userId=${userId}`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            subscriptionPlanCountryId: subscriptionPlanCountryId
-          })
-        }
-      );
+      const response = await apiClient.post(`/Subscriptions?userId=${userId}`, {
+        subscriptionPlanCountryId: subscriptionPlanCountryId
+      });
 
       if (response.ok) {
         const result = await response.json();
@@ -233,8 +186,8 @@ function Subscriptions() {
   return (
     <div className={styles.container}>
       <button className={styles.backButton} onClick={() => navigate('/')}>
-                        ← Back
-            </button>
+        ← Back
+      </button>
       <div className={styles.header}>
         <h1 className={styles.title}>PSstore Subscriptions</h1>
         <p className={styles.subtitle}>
@@ -255,7 +208,7 @@ function Subscriptions() {
             <div className={styles.activeInfo}>
               <div className={styles.planName}>{activeSubscription.subscriptionName || 'Active Subscription'}</div>
               {typeof activeSubscription.includedGamesCount !== 'undefined' && (
-                <div style={{marginTop: 6, color: 'rgba(255,255,255,0.9)'}}>
+                <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.9)' }}>
                   {activeSubscription.includedGamesCount} games included
                 </div>
               )}
@@ -283,9 +236,8 @@ function Subscriptions() {
           return (
             <div
               key={plan.subscriptionId}
-              className={`${styles.planCard} ${
-                plan.subscriptionName === 'Premium' ? styles.featured : ''
-              }`}
+              className={`${styles.planCard} ${plan.subscriptionName === 'Premium' ? styles.featured : ''
+                }`}
             >
               {plan.subscriptionName === 'Premium' && (
                 <div className={styles.bestValue}>Best Value</div>
@@ -320,7 +272,7 @@ function Subscriptions() {
                   ✓ Play on all devices
                 </div>
                 <div className={styles.feature}>
-                ✓ High Quality Games
+                  ✓ High Quality Games
                 </div>
                 {plan.subscriptionName === 'Premium' && (
                   <>
@@ -341,11 +293,10 @@ function Subscriptions() {
                     {pricingOptions.map((option) => (
                       <button
                         key={option.subscriptionPlanCountryId}
-                        className={`${styles.durationButton} ${
-                          selectedDuration === option.subscriptionPlanCountryId
+                        className={`${styles.durationButton} ${selectedDuration === option.subscriptionPlanCountryId
                             ? styles.selectedDuration
                             : ''
-                        }`}
+                          }`}
                         onClick={() => setSelectedDuration(option.subscriptionPlanCountryId)}
                       >
                         {option.durationMonths} Month{option.durationMonths > 1 ? 's' : ''}
@@ -393,8 +344,8 @@ function Subscriptions() {
                   {activeSubscription?.subscriptionName === plan.subscriptionName
                     ? 'Current Plan'
                     : pricingOptions.length === 0
-                    ? 'Not Available'
-                    : 'Subscribe Now'}
+                      ? 'Not Available'
+                      : 'Subscribe Now'}
                 </button>
               )}
             </div>

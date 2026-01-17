@@ -17,11 +17,11 @@ function Login() {
     setLoading(true);
 
     const result = await login(email, password);
-    
+
     if (!result.success) {
       setError(result.error || 'Invalid email or password');
     }
-    
+
     setLoading(false);
   };
 
@@ -29,9 +29,9 @@ function Login() {
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
         <h2 className={styles.loginTitle}>Login to PSstore</h2>
-        
+
         {error && <div className={styles.errorMessage}>{error}</div>}
-        
+
         <form onSubmit={handleSubmit} className={styles.loginForm}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Email</label>
@@ -42,6 +42,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              autocomplete="username"
             />
           </div>
 
@@ -54,11 +55,12 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
+              autocomplete="current-password"
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.loginButton}
             disabled={loading}
           >

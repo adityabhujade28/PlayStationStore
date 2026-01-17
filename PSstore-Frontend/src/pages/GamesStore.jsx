@@ -5,9 +5,10 @@ import SearchBar from '../components/SearchBar';
 import CategoryFilter from '../components/CategoryFilter';
 import GameCard from '../components/GameCard';
 import styles from './GamesStore.module.css';
+import apiClient from '../utils/apiClient';
 
 function GamesStore() {
-  const { token, getDecodedToken } = useAuth();
+  const { getDecodedToken } = useAuth();
   const [games, setGames] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filteredGames, setFilteredGames] = useState([]);
@@ -29,11 +30,7 @@ function GamesStore() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5160/api/categories', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.get('/categories');
 
       if (response.ok) {
         const data = await response.json();
@@ -49,23 +46,15 @@ function GamesStore() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.get(`/users/${userId}`);
 
       if (response.ok) {
         const userData = await response.json();
         // console.log('User data:', userData);
         // Fetch country details to get currency
         if (userData.countryId) {
-          const countryResponse = await fetch(`http://localhost:5160/api/countries/${userData.countryId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
+          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
+
           if (countryResponse.ok) {
             const countryData = await countryResponse.json();
             // console.log('Country data:', countryData);
@@ -87,11 +76,7 @@ function GamesStore() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(`http://localhost:5160/api/games?userId=${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await apiClient.get(`/games?userId=${userId}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch games');
@@ -133,12 +118,8 @@ function GamesStore() {
     try {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
-      
-      const response = await fetch(`http://localhost:5160/api/games/category/${categoryId}?userId=${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+
+      const response = await apiClient.get(`/games/category/${categoryId}?userId=${userId}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -216,8 +197,8 @@ function GamesStore() {
               {selectedCategory
                 ? categories.find(c => c.categoryId === selectedCategory)?.categoryName
                 : searchQuery
-                ? `Search Results (${filteredGames.length})`
-                : 'All Games'}
+                  ? `Search Results (${filteredGames.length})`
+                  : 'All Games'}
             </h2>
 
             {loading ? (

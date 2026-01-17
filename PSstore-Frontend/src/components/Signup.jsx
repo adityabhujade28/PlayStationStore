@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Signup.module.css';
+import apiClient from '../utils/apiClient';
 
 function Signup() {
   const navigate = useNavigate();
@@ -42,7 +43,18 @@ function Signup() {
   useEffect(() => {
     const fetchCountries = async () => {
       try {
-        const response = await fetch('http://localhost:5160/api/countries');
+        // Use apiClient - auth headers are not needed for countries endpoint but harmless if added
+        // The API might be public, but apiClient adds token if available.
+        // If the endpoint is public and token is invalid/expired, there might be check issues?
+        // Usually safe. However, Signup page access implies potentially not logged in.
+        // apiClient retrieves token from localStorage. If not present, it just sends request without token?
+        // Let's check apiClient implementation.
+        // apiClient implementation:
+        // const token = localStorage.getItem('token');
+        // if (token) headers['Authorization'] = `Bearer ${token}`;
+        // So if not logged in, no header. This is fine.
+
+        const response = await apiClient.get('/countries');
         if (response.ok) {
           const data = await response.json();
           setCountries(data);
@@ -124,9 +136,9 @@ function Signup() {
     <div className={styles.signupContainer}>
       <div className={styles.signupCard}>
         <h2 className={styles.signupTitle}>Create Account</h2>
-        
+
         {error && <div className={styles.errorMessage}>{error}</div>}
-        
+
         <form onSubmit={handleSubmit} className={styles.signupForm}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Username</label>
@@ -212,8 +224,8 @@ function Signup() {
             </select>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.signupButton}
             disabled={loading}
           >

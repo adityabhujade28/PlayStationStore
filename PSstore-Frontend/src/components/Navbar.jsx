@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import styles from './Navbar.module.css';
+import apiClient from '../utils/apiClient';
 
 function Navbar() {
   const { token, getDecodedToken, logout } = useAuth();
@@ -20,12 +21,8 @@ function Navbar() {
 
   const fetchUserName = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      const response = await apiClient.get(`/users/${userId}`);
+
       if (response.ok) {
         const data = await response.json();
         setUserName(data.userName);

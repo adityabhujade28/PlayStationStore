@@ -2,19 +2,27 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { formatPrice } from '../utils/currency';
 import Navbar from '../components/Navbar';
+import Toast from '../components/Toast'; // Import Toast
 import styles from './GameDetails.module.css';
+import apiClient from '../utils/apiClient';
 
 function GameDetails() {
   const { gameId } = useParams();
   const navigate = useNavigate();
-  const { token, getDecodedToken } = useAuth();
-  const { addToCart, loading: cartLoading } = useCart();
+  const { getDecodedToken } = useAuth();
+  const { addToCart } = useCart();
+
   const [game, setGame] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userCurrency, setUserCurrency] = useState('INR');
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [toast, setToast] = useState(null); // { message, type }
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+  };
 
   useEffect(() => {
     fetchGameDetails();
@@ -26,21 +34,15 @@ function GameDetails() {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      if (!userId) return;
 
-      if (response.ok) {
-        const userData = await response.json();
+      const userResponse = await apiClient.get(`/users/${userId}`);
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
         if (userData.countryId) {
-          const countryResponse = await fetch(`http://localhost:5160/api/countries/${userData.countryId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
+          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
+
           if (countryResponse.ok) {
             const countryData = await countryResponse.json();
             setUserCurrency(countryData.currency);
@@ -54,24 +56,14 @@ function GameDetails() {
 
   const fetchGameDetails = async () => {
     setLoading(true);
-    setError('');
-
     try {
       const decoded = getDecodedToken();
       const userId = decoded?.userId;
 
-      // Fetch game with access information - userId as route parameter
-      const response = await fetch(
-        `http://localhost:5160/api/games/${gameId}/access/${userId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await apiClient.get(`/games/${gameId}/access/${userId}`);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch game details');
+        throw new Error('Game not found');
       }
 
       const data = await response.json();
@@ -84,20 +76,26 @@ function GameDetails() {
   };
 
   const handleAddToCart = async () => {
-    const result = await addToCart(gameId);
+    setAddingToCart(true);
+    const result = await addToCart(game.gameId);
+    setAddingToCart(false);
+
     if (result.success) {
-      alert('Game added to cart!');
+      showToast('Added to cart!', 'success');
     } else {
-      alert(result.error || 'Failed to add to cart');
+      showToast(result.message, 'error');
     }
   };
 
   const handleBuyNow = async () => {
-    const result = await addToCart(gameId);
+    setAddingToCart(true);
+    const result = await addToCart(game.gameId);
+    setAddingToCart(false);
+
     if (result.success) {
       navigate('/cart');
     } else {
-      alert(result.error || 'Failed to add to cart');
+      showToast(result.message, 'error');
     }
   };
 
@@ -105,25 +103,23 @@ function GameDetails() {
     return (
       <>
         <Navbar />
-        <div className={styles.loading}>Loading game details...</div>
+        <div className={styles.container}>
+          <div className={styles.loading}>Loading game details...</div>
+        </div>
       </>
     );
   }
 
-  if (error) {
+  if (error || !game) {
     return (
       <>
         <Navbar />
-        <div className={styles.error}>{error}</div>
-      </>
-    );
-  }
-
-  if (!game) {
-    return (
-      <>
-        <Navbar />
-        <div className={styles.error}>Game not found</div>
+        <div className={styles.container}>
+          <div className={styles.error}>{error || 'Game not found'}</div>
+          <button onClick={() => navigate('/')} className={styles.backButton}>
+            Back to Store
+          </button>
+        </div>
       </>
     );
   }
@@ -131,104 +127,107 @@ function GameDetails() {
   return (
     <>
       <Navbar />
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
       <div className={styles.details}>
         <div className={styles.container}>
-          <button className={styles.backButton} onClick={() => navigate(-1)}>
-            ← Back
+          <button onClick={() => navigate('/')} className={styles.backButton}>
+            &larr; Back to Store
           </button>
 
           <div className={styles.gameHeader}>
             <div className={styles.imageSection}>
               <div className={styles.mainImage}>
+                {/* Placeholder for game image matching CSS structure */}
                 <div className={styles.imagePlaceholder}>🎮</div>
-                {game.freeToPlay && <span className={styles.freeBadge}>FREE</span>}
               </div>
+              {game.freeToPlay && <div className={styles.freeBadge}>Free</div>}
             </div>
 
             <div className={styles.infoSection}>
               <h1 className={styles.gameTitle}>{game.gameName}</h1>
-              <p className={styles.publisher}>{game.publishedBy}</p>
+              <p className={styles.publisher}>Published by: {game.publishedBy || 'Unknown'}</p>
 
               <div className={styles.badges}>
-                {game.isMultiplayer && (
-                  <span className={styles.badge}>Multiplayer</span>
-                )}
-                {game.freeToPlay && (
-                  <span className={styles.badge}>Free to Play</span>
+                {game.isMultiplayer && <span className={styles.badge}>Multiplayer</span>}
+                {game.canAccess && (
+                  <span className={styles.badge}>
+                    {game.accessType === 'SUBSCRIPTION' ? 'Included with Subscription' : 'Owned'}
+                  </span>
                 )}
               </div>
 
               <div className={styles.priceSection}>
                 {game.freeToPlay ? (
-                  <span className={styles.freePrice}>Free to Play</span>
+                  <div className={styles.freePrice}>Free</div>
                 ) : (
-                  <>
-                    <span className={styles.price}>
-                      {game.price ? formatPrice(game.price, userCurrency) : 'Price TBA'}
-                    </span>
-                  </>
+                  <div className={styles.price}>
+                    {userCurrency} {game.price}
+                  </div>
                 )}
               </div>
-
-              {game.releaseDate && (
-                <p className={styles.releaseDate}>
-                  Released: {new Date(game.releaseDate).toLocaleDateString()}
-                </p>
-              )}
 
               <div className={styles.actions}>
                 {game.canAccess ? (
-                  <button className={`${styles.button} ${styles.playButton}`}>
-                    ▶ Play Game
-                  </button>
-                ) : game.freeToPlay ? (
-                  <button className={`${styles.button} ${styles.playButton}`}>
-                    ▶ Play Now
+                  <button className={styles.playButton} disabled>
+                    {game.accessType === 'SUBSCRIPTION' ? 'Play with Subscription' : 'Play Now'}
                   </button>
                 ) : (
                   <>
-                    <button
-                      className={`${styles.button} ${styles.buyButton}`}
-                      onClick={handleBuyNow}
-                      disabled={cartLoading}
-                    >
-                      Buy Now
-                    </button>
-                    <button
-                      className={`${styles.button} ${styles.cartButton}`}
-                      onClick={handleAddToCart}
-                      disabled={cartLoading}
-                    >
-                      {cartLoading ? 'Adding...' : 'Add to Cart'}
-                    </button>
+                    {!game.freeToPlay && (
+                      <>
+                        <button
+                          className={styles.cartButton}
+                          onClick={handleAddToCart}
+                          disabled={addingToCart}
+                        >
+                          {addingToCart ? 'Adding...' : 'Add to Cart'}
+                        </button>
+                        <button
+                          className={styles.buyButton}
+                          onClick={handleBuyNow}
+                          disabled={addingToCart}
+                        >
+                          Buy Now
+                        </button>
+                      </>
+                    )}
+                    {game.freeToPlay && (
+                      <button className={styles.playButton} onClick={handleBuyNow}>Get Free</button>
+                    )}
                   </>
                 )}
               </div>
 
-              {game.availableThrough && game.availableThrough.length > 0 && (
-                <div className={styles.subscriptionInfo}>
-                  <p className={styles.subscriptionText}>
-                    Also available with:
-                  </p>
-                  <div className={styles.subscriptionBadges}>
-                    {game.availableThrough.map((plan, index) => (
-                      <span key={index} className={styles.subscriptionBadge}>
-                        {plan}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+              <div className={styles.description}>
+                <h2 className={styles.sectionTitle}>About this game</h2>
+                <p className={styles.descriptionText}>
+                  Experience the thrill of {game.gameName}.
+                  {game.isMultiplayer ? ' Join your friends in this exciting multiplayer adventure.' : ' Immerse yourself in this single-player journey.'}
+                  <br /><br />
+                  <strong>Release Date:</strong> {game.releaseDate ? new Date(game.releaseDate).toLocaleDateString() : 'TBA'}
+                  <br />
+                  <strong>Categories:</strong> {game.categories && game.categories.length > 0 ? game.categories.join(', ') : 'None'}
+                </p>
 
-          <div className={styles.description}>
-            <h2 className={styles.sectionTitle}>About This Game</h2>
-            <p className={styles.descriptionText}>
-              {game.gameName} is an exciting game published by {game.publishedBy}.
-              {game.isMultiplayer && ' Experience thrilling multiplayer action with friends!'}
-              {game.freeToPlay && ' Best of all, it\'s completely free to play!'}
-            </p>
+                {/* Subscription info if available */}
+                {game.availableInPlans && game.availableInPlans.length > 0 && (
+                  <div className={styles.subscriptionInfo}>
+                    <p className={styles.subscriptionText}>Included in subscriptions:</p>
+                    <div className={styles.subscriptionBadges}>
+                      {game.availableInPlans.map((plan, index) => (
+                        <span key={index} className={styles.subscriptionBadge}>{plan}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

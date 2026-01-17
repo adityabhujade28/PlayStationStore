@@ -1,23 +1,55 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
 import styles from './CheckoutSuccess.module.css';
+import apiClient from '../utils/apiClient';
 
 function CheckoutSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { getDecodedToken } = useAuth();
   const purchase = location.state?.purchase;
+  const [userCurrency, setUserCurrency] = useState('INR');
 
   useEffect(() => {
     if (!purchase) {
       navigate('/');
+    } else {
+      fetchUserCurrency();
     }
   }, [purchase, navigate]);
 
+  const fetchUserCurrency = async () => {
+    try {
+      const decoded = getDecodedToken();
+      const userId = decoded?.userId;
+
+      if (!userId) return;
+
+      const userResponse = await apiClient.get(`/users/${userId}`);
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+
+        if (userData.countryId) {
+          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
+
+          if (countryResponse.ok) {
+            const countryData = await countryResponse.json();
+            setUserCurrency(countryData.currency);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch user currency:', err);
+    }
+  };
+
   if (!purchase) return null;
 
-  const date = new Date(purchase.purchaseDate);
-  const formattedDate = date.toLocaleDateString('en-US', {
+  const currentDate = new Date();
+  const formattedDate = currentDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -36,7 +68,7 @@ function CheckoutSuccess() {
           <h2 className={styles.sectionTitle}>Order Details</h2>
           <div className={styles.detailRow}>
             <span className={styles.label}>Order ID:</span>
-            <span className={styles.value}>{purchase.purchaseId}</span>
+            <span className={styles.value}>#{Date.now().toString(36).toUpperCase()}</span>
           </div>
           <div className={styles.detailRow}>
             <span className={styles.label}>Date:</span>
@@ -44,23 +76,34 @@ function CheckoutSuccess() {
           </div>
           <div className={styles.detailRow}>
             <span className={styles.label}>Total Amount:</span>
-            <span className={styles.totalValue}>
-              {formatPrice(purchase.totalAmount, purchase.currency || 'INR')}
+            <span className={styles.value}>
+              {formatPrice(purchase.totalAmount, userCurrency)}
             </span>
           </div>
         </div>
 
-        {purchase.games && purchase.games.length > 0 && (
+        {purchase.purchasedGames && purchase.purchasedGames.length > 0 && (
           <div className={styles.gamesSection}>
             <h2 className={styles.sectionTitle}>Purchased Games</h2>
             <div className={styles.gamesList}>
-              {purchase.games.map((game, index) => (
+              {purchase.purchasedGames.map((gameName, index) => (
                 <div key={index} className={styles.gameItem}>
                   <div className={styles.gamePlaceholder}>🎮</div>
-                  <span className={styles.gameName}>{game.name || game.gameName}</span>
+                  <span className={styles.gameName}>{gameName}</span>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {purchase.failedGames && purchase.failedGames.length > 0 && (
+          <div className={styles.failedSection}>
+            <h3>Failed Purchases:</h3>
+            <ul>
+              {purchase.failedGames.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
           </div>
         )}
 

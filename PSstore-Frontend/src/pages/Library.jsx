@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
 import styles from './Library.module.css';
+import apiClient from '../utils/apiClient';
 
 function Library() {
-  const { token, getDecodedToken } = useAuth();
+  const { getDecodedToken, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [games, setGames] = useState([]);
@@ -27,24 +28,13 @@ function Library() {
 
       if (!userId) return;
 
-      const userResponse = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const userResponse = await apiClient.get(`/users/${userId}`);
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
-        
+
         if (userData.countryId) {
-          const countryResponse = await fetch(
-            `http://localhost:5160/api/countries/${userData.countryId}`,
-            {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            }
-          );
+          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
 
           if (countryResponse.ok) {
             const countryData = await countryResponse.json();
@@ -69,36 +59,21 @@ function Library() {
         return;
       }
 
-      const response = await fetch(
-        `http://localhost:5160/api/users/${userId}/library`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await apiClient.get(`/users/${userId}/library`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Library data:', data); // Debug log
         // Backend returns AccessibleGames array - keep all non-subscription games
         const accessibleGames = (data.accessibleGames || []).filter(
           game => game.accessType !== 'SUBSCRIPTION'
         );
-        
+
         // Fetch full game details for each accessible game
         const gamesWithDetails = await Promise.all(
           accessibleGames.map(async (game) => {
             try {
-              const gameResponse = await fetch(
-                `http://localhost:5160/api/games/${game.gameId}/access/${userId}`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${token}`
-                  }
-                }
-              );
-              
+              const gameResponse = await apiClient.get(`/games/${game.gameId}/access/${userId}`);
+
               if (gameResponse.ok) {
                 const gameDetails = await gameResponse.json();
                 return {
@@ -112,7 +87,7 @@ function Library() {
                   purchasedOn: game.purchasedOn
                 };
               }
-              
+
               // If fetch fails, return basic info
               return {
                 gameId: game.gameId,
@@ -131,7 +106,7 @@ function Library() {
             }
           })
         );
-        
+
         setGames(gamesWithDetails);
       } else {
         setError('Failed to load library');
@@ -150,23 +125,14 @@ function Library() {
 
       if (!userId) return;
 
-      const response = await fetch(
-        `http://localhost:5160/api/Subscriptions/user/${userId}/active`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      const response = await apiClient.get(`/Subscriptions/user/${userId}/active`);
 
       if (response.ok) {
         const activeSubscription = await response.json();
 
-        // Try to enrich subscription with plan details (plan name, included games)
+        // Enrich active subscription with plan details (plan name, included games)
         try {
-          const plansRes = await fetch(`http://localhost:5160/api/Subscriptions/plans`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const plansRes = await apiClient.get(`/Subscriptions/plans`);
 
           if (plansRes.ok) {
             const plans = await plansRes.json();
@@ -217,10 +183,10 @@ function Library() {
   }
 
   return (
-    
+
     <div className={styles.container}>
       <button className={styles.backButton} onClick={() => navigate('/')}>
-                  ← Back
+        ← Back
       </button>
       <div className={styles.header}>
         <h1 className={styles.title}>My Library</h1>
@@ -270,11 +236,11 @@ function Library() {
           <div className={styles.emptyIcon}>📚</div>
           <h2>No {activeTab === 'all' ? 'items' : activeTab === 'subscription' ? 'subscriptions' : 'games'} found</h2>
           <p>
-            {activeTab === 'all' 
+            {activeTab === 'all'
               ? "You don't have any games or subscriptions yet. Browse the store to get started!"
               : activeTab === 'subscription'
-              ? "You don't have an active subscription. Check out our subscription plans!"
-              : `You don't have any ${activeTab} games yet.`
+                ? "You don't have an active subscription. Check out our subscription plans!"
+                : `You don't have any ${activeTab} games yet.`
             }
           </p>
           <button className={styles.browseButton} onClick={() => navigate(activeTab === 'subscription' ? '/subscriptions' : '/')}>

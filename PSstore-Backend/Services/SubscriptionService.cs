@@ -102,7 +102,8 @@ namespace PSstore.Services
                 SubscriptionPlanCountryId = subscription.SubscriptionPlanCountryId,
                 PlanStartDate = subscription.PlanStartDate,
                 PlanEndDate = subscription.PlanEndDate,
-                IsActive = subscription.PlanEndDate >= DateTime.UtcNow
+                IsActive = subscription.PlanEndDate >= DateTime.UtcNow,
+                SubscriptionName = subscription.SubscriptionPlanCountry?.SubscriptionPlan?.SubscriptionType ?? "Unknown"
             };
         }
 
@@ -123,7 +124,7 @@ namespace PSstore.Services
 
         public async Task<IEnumerable<SubscriptionPlanDTO>> GetAllSubscriptionPlansAsync()
         {
-            var plans = await _subscriptionPlanRepository.GetAllAsync();
+            var plans = await _subscriptionPlanRepository.GetAllPlansWithDetailsAsync();
             
             return plans.Select(p => new SubscriptionPlanDTO
             {

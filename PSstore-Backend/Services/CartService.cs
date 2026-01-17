@@ -11,19 +11,22 @@ namespace PSstore.Services
         private readonly IGameRepository _gameRepository;
         private readonly IUserRepository _userRepository;
         private readonly IPurchaseService _purchaseService;
+        private readonly IEntitlementService _entitlementService;
 
         public CartService(
             ICartRepository cartRepository,
             ICartItemRepository cartItemRepository,
             IGameRepository gameRepository,
             IUserRepository userRepository,
-            IPurchaseService purchaseService)
+            IPurchaseService purchaseService,
+            IEntitlementService entitlementService)
         {
             _cartRepository = cartRepository;
             _cartItemRepository = cartItemRepository;
             _gameRepository = gameRepository;
             _userRepository = userRepository;
             _purchaseService = purchaseService;
+            _entitlementService = entitlementService;
         }
 
         public async Task<CartDTO?> GetUserCartAsync(Guid userId)
@@ -88,6 +91,13 @@ namespace PSstore.Services
             if (alreadyPurchased)
             {
                 throw new InvalidOperationException("You already own this game.");
+            }
+
+            // Check if game is accessible via active subscription
+            var gameAccess = await _entitlementService.CanUserAccessGameAsync(userId, cartItemDTO.GameId);
+            if (gameAccess.CanAccess && gameAccess.AccessType == "SUBSCRIPTION")
+            {
+                throw new InvalidOperationException("This game is already accessible through your subscription. No purchase needed.");
             }
 
             // Check if item already in cart
@@ -239,6 +249,9 @@ namespace PSstore.Services
                 }
             }
 
+            // Capture total amount before clearing cart - explicitly summing items to ensure accuracy
+            var totalAmount = cart.CartItems.Sum(item => item.TotalPrice);
+
             // Clear cart after checkout
             await ClearCartAsync(userId);
 
@@ -248,7 +261,7 @@ namespace PSstore.Services
                 Message = $"Purchased {purchasedGames.Count} game(s) successfully.",
                 PurchasedGames = purchasedGames,
                 FailedGames = failedGames,
-                TotalAmount = cart.TotalAmount
+                TotalAmount = totalAmount // Use captured total amount
             };
         }
 

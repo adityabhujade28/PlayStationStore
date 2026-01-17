@@ -67,6 +67,17 @@ namespace PSstore.Services
                 };
             }
 
+            // Check if game is accessible via active subscription
+            var gameAccess = await _entitlementService.CanUserAccessGameAsync(userId, purchaseDTO.GameId);
+            if (gameAccess.CanAccess && gameAccess.AccessType == "SUBSCRIPTION")
+            {
+                return new PurchaseResponseDTO
+                {
+                    Success = false,
+                    Message = "This game is already accessible through your subscription. No purchase needed."
+                };
+            }
+
             // Create purchase record
             var purchase = new UserPurchaseGame
             {

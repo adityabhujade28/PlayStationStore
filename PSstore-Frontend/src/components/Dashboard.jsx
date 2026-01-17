@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
 import styles from './Dashboard.module.css';
+import apiClient from '../utils/apiClient';
 
 function Dashboard() {
   const { token, getDecodedToken } = useAuth();
@@ -21,12 +22,8 @@ function Dashboard() {
 
   const fetchUserDetails = async (userId) => {
     try {
-      const response = await fetch(`http://localhost:5160/api/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      const response = await apiClient.get(`/users/${userId}`);
+
       if (response.ok) {
         const data = await response.json();
         setUserInfo(data);
@@ -39,18 +36,14 @@ function Dashboard() {
   const fetchGames = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
-      const response = await fetch('http://localhost:5160/api/games', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      const response = await apiClient.get('/games');
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setGames(data);
     } catch (err) {
@@ -76,7 +69,7 @@ function Dashboard() {
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Games Catalog</h2>
             <div className={styles.buttonGroup}>
-              <button 
+              <button
                 className={`${styles.fetchButton} ${styles.games}`}
                 onClick={fetchGames}
                 disabled={loading}
@@ -86,7 +79,7 @@ function Dashboard() {
             </div>
 
             {loading && <div className={styles.loading}>Loading games...</div>}
-            
+
             {games.length === 0 && !loading && (
               <div className={styles.emptyState}>
                 No games loaded. Click "Fetch Games" to load the catalog.

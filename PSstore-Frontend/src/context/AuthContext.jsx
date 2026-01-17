@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import apiClient from '../utils/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -10,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if token exists on mount
     const storedToken = localStorage.getItem('token');
-    
+
     if (storedToken) {
       setToken(storedToken);
     }
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
   // Decode token to get user info
   const getDecodedToken = () => {
     if (!token) return null;
-    
+
     try {
       const decoded = jwtDecode(token);
       return {
@@ -38,15 +39,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:5160/api/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userEmail: email,
-          userPassword: password,
-        }),
+      const response = await apiClient.post('/users/login', {
+        userEmail: email,
+        userPassword: password,
       });
 
       if (!response.ok) {
@@ -55,7 +50,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      
+
       // Only store token in localStorage (remove any old user data)
       localStorage.removeItem('user'); // Clean up old user data
       localStorage.setItem('token', data.token);
@@ -69,18 +64,12 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (userName, email, password, age, countryId) => {
     try {
-      const response = await fetch('http://localhost:5160/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName,
-          userEmail: email,
-          userPassword: password,
-          age,
-          countryId,
-        }),
+      const response = await apiClient.post('/users', {
+        userName,
+        userEmail: email,
+        userPassword: password,
+        age,
+        countryId,
       });
 
       if (!response.ok) {
