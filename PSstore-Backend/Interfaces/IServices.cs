@@ -4,71 +4,71 @@ namespace PSstore.Interfaces
 {
     public interface IJwtService
     {
-        string GenerateToken(int userId, string email, string userName, string role);
-        int? ValidateToken(string token);
+        string GenerateToken(Guid userId, string role);
+        Guid? ValidateToken(string token);
     }
 
     public interface IGameService
     {
-        Task<GameDTO?> GetGameByIdAsync(int gameId);
-        Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false);
-        Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm);
-        Task<IEnumerable<GameDTO>> GetGamesByCategoryAsync(int categoryId);
-        Task<IEnumerable<GameDTO>> GetFreeToPlayGamesAsync();
-        Task<GameWithAccessDTO?> GetGameWithAccessAsync(int gameId, int userId);
+        Task<GameDTO?> GetGameByIdAsync(Guid gameId, Guid? userId = null);
+        Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false, Guid? userId = null);
+        Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm, Guid? userId = null);
+        Task<IEnumerable<GameDTO>> GetGamesByCategoryAsync(Guid categoryId, Guid? userId = null);
+        Task<IEnumerable<GameDTO>> GetFreeToPlayGamesAsync(Guid? userId = null);
+        Task<GameWithAccessDTO?> GetGameWithAccessAsync(Guid gameId, Guid userId);
         Task<GameDTO> CreateGameAsync(CreateGameDTO createGameDTO);
-        Task<GameDTO?> UpdateGameAsync(int gameId, UpdateGameDTO updateGameDTO);
-        Task<bool> SoftDeleteGameAsync(int gameId);
-        Task<bool> RestoreGameAsync(int gameId);
+        Task<GameDTO?> UpdateGameAsync(Guid gameId, UpdateGameDTO updateGameDTO);
+        Task<bool> SoftDeleteGameAsync(Guid gameId);
+        Task<bool> RestoreGameAsync(Guid gameId);
     }
 
     public interface IPurchaseService
     {
-        Task<PurchaseResponseDTO> PurchaseGameAsync(int userId, CreatePurchaseDTO purchaseDTO);
-        Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(int userId);
-        Task<bool> HasUserPurchasedGameAsync(int userId, int gameId);
-        Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(int purchaseId);
+        Task<PurchaseResponseDTO> PurchaseGameAsync(Guid userId, CreatePurchaseDTO purchaseDTO);
+        Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(Guid userId);
+        Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
+        Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(Guid purchaseId);
     }
 
     public interface ISubscriptionService
     {
-        Task<SubscriptionResponseDTO> SubscribeAsync(int userId, CreateSubscriptionDTO subscriptionDTO);
-        Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(int userId);
-        Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(int userId);
+        Task<SubscriptionResponseDTO> SubscribeAsync(Guid userId, CreateSubscriptionDTO subscriptionDTO);
+        Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(Guid userId);
+        Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(Guid userId);
         Task<IEnumerable<SubscriptionPlanDTO>> GetAllSubscriptionPlansAsync();
-        Task<IEnumerable<SubscriptionPlanRegionDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int regionId);
-        Task<bool> CancelSubscriptionAsync(int userId);
+        Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(Guid subscriptionId, Guid countryId);
+        Task<bool> CancelSubscriptionAsync(Guid userId);
     }
 
     public interface ICartService
     {
-        Task<CartDTO?> GetUserCartAsync(int userId);
-        Task<CartItemDTO> AddItemToCartAsync(int userId, CreateCartItemDTO cartItemDTO);
-        Task<bool> RemoveItemFromCartAsync(int userId, int cartItemId);
-        Task<bool> UpdateCartItemQuantityAsync(int userId, int cartItemId, int quantity);
-        Task<bool> ClearCartAsync(int userId);
-        Task<CheckoutResultDTO> CheckoutAsync(int userId);
+        Task<CartDTO?> GetUserCartAsync(Guid userId);
+        Task<CartItemDTO> AddItemToCartAsync(Guid userId, CreateCartItemDTO cartItemDTO);
+        Task<bool> RemoveItemFromCartAsync(Guid userId, Guid cartItemId);
+        Task<bool> UpdateCartItemQuantityAsync(Guid userId, Guid cartItemId, int quantity);
+        Task<bool> ClearCartAsync(Guid userId);
+        Task<CheckoutResultDTO> CheckoutAsync(Guid userId);
     }
 
     public interface IUserService
     {
-        Task<UserDTO?> GetUserByIdAsync(int userId);
+        Task<UserDTO?> GetUserByIdAsync(Guid userId);
         Task<UserDTO?> GetUserByEmailAsync(string email);
         Task<UserDTO> CreateUserAsync(CreateUserDTO createUserDTO);
-        Task<UserDTO?> UpdateUserAsync(int userId, UpdateUserDTO updateUserDTO);
-        Task<bool> SoftDeleteUserAsync(int userId);
-        Task<bool> RestoreUserAsync(int userId);
+        Task<UserDTO?> UpdateUserAsync(Guid userId, UpdateUserDTO updateUserDTO);
+        Task<bool> SoftDeleteUserAsync(Guid userId);
+        Task<bool> RestoreUserAsync(Guid userId);
         Task<LoginResponseDTO?> LoginAsync(LoginDTO loginDTO);
-        Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword);
+        Task<bool> ChangePasswordAsync(Guid userId, string oldPassword, string newPassword);
     }
 
     public interface ICategoryService
     {
-        Task<CategoryDTO?> GetCategoryByIdAsync(int categoryId);
+        Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId);
         Task<IEnumerable<CategoryDTO>> GetAllCategoriesAsync(bool includeDeleted = false);
         Task<CategoryDTO> CreateCategoryAsync(CreateCategoryDTO createCategoryDTO);
-        Task<CategoryDTO?> UpdateCategoryAsync(int categoryId, UpdateCategoryDTO updateCategoryDTO);
-        Task<bool> SoftDeleteCategoryAsync(int categoryId);
-        Task<bool> RestoreCategory(int categoryId);
+        Task<CategoryDTO?> UpdateCategoryAsync(Guid categoryId, UpdateCategoryDTO updateCategoryDTO);
+        Task<bool> SoftDeleteCategoryAsync(Guid categoryId);
+        Task<bool> RestoreCategory(Guid categoryId);
     }
 }

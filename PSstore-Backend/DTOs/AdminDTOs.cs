@@ -16,7 +16,7 @@ namespace PSstore.DTOs
     // Admin response
     public class AdminResponseDTO
     {
-        public int AdminId { get; set; }
+        public Guid AdminId { get; set; }
         public string AdminEmail { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }

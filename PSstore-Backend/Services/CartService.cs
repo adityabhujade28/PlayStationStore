@@ -11,22 +11,25 @@ namespace PSstore.Services
         private readonly IGameRepository _gameRepository;
         private readonly IUserRepository _userRepository;
         private readonly IPurchaseService _purchaseService;
+        private readonly IEntitlementService _entitlementService;
 
         public CartService(
             ICartRepository cartRepository,
             ICartItemRepository cartItemRepository,
             IGameRepository gameRepository,
             IUserRepository userRepository,
-            IPurchaseService purchaseService)
+            IPurchaseService purchaseService,
+            IEntitlementService entitlementService)
         {
             _cartRepository = cartRepository;
             _cartItemRepository = cartItemRepository;
             _gameRepository = gameRepository;
             _userRepository = userRepository;
             _purchaseService = purchaseService;
+            _entitlementService = entitlementService;
         }
 
-        public async Task<CartDTO?> GetUserCartAsync(int userId)
+        public async Task<CartDTO?> GetUserCartAsync(Guid userId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -52,7 +55,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<CartItemDTO> AddItemToCartAsync(int userId, CreateCartItemDTO cartItemDTO)
+        public async Task<CartItemDTO> AddItemToCartAsync(Guid userId, CreateCartItemDTO cartItemDTO)
         {
             // Get or create cart for user
             var cart = await _cartRepository.GetUserCartAsync(userId);
@@ -90,6 +93,13 @@ namespace PSstore.Services
                 throw new InvalidOperationException("You already own this game.");
             }
 
+            // Check if game is accessible via active subscription
+            var gameAccess = await _entitlementService.CanUserAccessGameAsync(userId, cartItemDTO.GameId);
+            if (gameAccess.CanAccess && gameAccess.AccessType == "SUBSCRIPTION")
+            {
+                throw new InvalidOperationException("This game is already accessible through your subscription. No purchase needed.");
+            }
+
             // Check if item already in cart
             var existingItem = cart.CartItems?.FirstOrDefault(ci => ci.GameId == cartItemDTO.GameId);
             if (existingItem != null)
@@ -107,8 +117,8 @@ namespace PSstore.Services
                     CartId = cart.CartId,
                     GameId = cartItemDTO.GameId,
                     Quantity = cartItemDTO.Quantity,
-                    UnitPrice = game.Price,
-                    TotalPrice = cartItemDTO.Quantity * game.Price
+                    UnitPrice = game.BasePrice ?? 0m,
+                    TotalPrice = cartItemDTO.Quantity * (game.BasePrice ?? 0m)
                 };
                 await _cartItemRepository.AddAsync(cartItem);
                 existingItem = cartItem;
@@ -130,7 +140,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<bool> RemoveItemFromCartAsync(int userId, int cartItemId)
+        public async Task<bool> RemoveItemFromCartAsync(Guid userId, Guid cartItemId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -152,7 +162,7 @@ namespace PSstore.Services
             return true;
         }
 
-        public async Task<bool> UpdateCartItemQuantityAsync(int userId, int cartItemId, int quantity)
+        public async Task<bool> UpdateCartItemQuantityAsync(Guid userId, Guid cartItemId, int quantity)
         {
             if (quantity <= 0)
             {
@@ -181,7 +191,7 @@ namespace PSstore.Services
             return true;
         }
 
-        public async Task<bool> ClearCartAsync(int userId)
+        public async Task<bool> ClearCartAsync(Guid userId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -205,7 +215,7 @@ namespace PSstore.Services
             return true;
         }
 
-        public async Task<CheckoutResultDTO> CheckoutAsync(int userId)
+        public async Task<CheckoutResultDTO> CheckoutAsync(Guid userId)
         {
             var cart = await _cartRepository.GetUserCartAsync(userId);
             if (cart != null)
@@ -239,6 +249,9 @@ namespace PSstore.Services
                 }
             }
 
+            // Capture total amount before clearing cart - explicitly summing items to ensure accuracy
+            var totalAmount = cart.CartItems.Sum(item => item.TotalPrice);
+
             // Clear cart after checkout
             await ClearCartAsync(userId);
 
@@ -248,11 +261,11 @@ namespace PSstore.Services
                 Message = $"Purchased {purchasedGames.Count} game(s) successfully.",
                 PurchasedGames = purchasedGames,
                 FailedGames = failedGames,
-                TotalAmount = cart.TotalAmount
+                TotalAmount = totalAmount // Use captured total amount
             };
         }
 
-        private async Task<decimal> CalculateCartTotalAsync(int cartId)
+        private async Task<decimal> CalculateCartTotalAsync(Guid cartId)
         {
             var items = await _cartItemRepository.GetCartItemsAsync(cartId);
             return items.Sum(item => item.TotalPrice);

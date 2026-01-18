@@ -13,7 +13,7 @@ namespace PSstore.Services
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<CategoryDTO?> GetCategoryByIdAsync(int categoryId)
+        public async Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId)
         {
             var category = await _categoryRepository.GetByIdAsync(categoryId);
             return category != null ? MapToCategoryDTO(category) : null;
@@ -41,7 +41,7 @@ namespace PSstore.Services
             return MapToCategoryDTO(category);
         }
 
-        public async Task<CategoryDTO?> UpdateCategoryAsync(int categoryId, UpdateCategoryDTO updateCategoryDTO)
+        public async Task<CategoryDTO?> UpdateCategoryAsync(Guid categoryId, UpdateCategoryDTO updateCategoryDTO)
         {
             var category = await _categoryRepository.GetByIdAsync(categoryId);
             if (category == null) return null;
@@ -54,13 +54,13 @@ namespace PSstore.Services
             return MapToCategoryDTO(category);
         }
 
-        public async Task<bool> SoftDeleteCategoryAsync(int categoryId)
+        public async Task<bool> SoftDeleteCategoryAsync(Guid categoryId)
         {
             await _categoryRepository.SoftDeleteAsync(categoryId);
             return true;
         }
 
-        public async Task<bool> RestoreCategory(int categoryId)
+        public async Task<bool> RestoreCategory(Guid categoryId)
         {
             return await _categoryRepository.RestoreAsync(categoryId);
         }

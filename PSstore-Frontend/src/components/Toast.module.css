@@ -1,0 +1,67 @@
+.toast {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background-color: #333;
+    color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out forwards;
+    min-width: 300px;
+}
+
+.success {
+    border-left: 4px solid #10a37f;
+}
+
+.error {
+    border-left: 4px solid #ef4444;
+}
+
+.icon {
+    font-size: 20px;
+}
+
+.content {
+    flex: 1;
+}
+
+.message {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.closeButton {
+    background: transparent;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.closeButton:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

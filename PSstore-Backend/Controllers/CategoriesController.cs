@@ -23,7 +23,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<CategoryDTO>> GetCategoryById(int id)
+        public async Task<ActionResult<CategoryDTO>> GetCategoryById(Guid id)
         {
             var category = await _categoryService.GetCategoryByIdAsync(id);
             if (category == null)
@@ -43,7 +43,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<CategoryDTO>> UpdateCategory(int id, [FromBody] UpdateCategoryDTO updateCategoryDTO)
+        public async Task<ActionResult<CategoryDTO>> UpdateCategory(Guid id, [FromBody] UpdateCategoryDTO updateCategoryDTO)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -56,7 +56,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<ActionResult> SoftDeleteCategory(int id)
+        public async Task<ActionResult> SoftDeleteCategory(Guid id)
         {
             var result = await _categoryService.SoftDeleteCategoryAsync(id);
             if (!result)
@@ -66,7 +66,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("{id}/restore")]
-        public async Task<ActionResult> RestoreCategory(int id)
+        public async Task<ActionResult> RestoreCategory(Guid id)
         {
             var result = await _categoryService.RestoreCategory(id);
             if (!result)

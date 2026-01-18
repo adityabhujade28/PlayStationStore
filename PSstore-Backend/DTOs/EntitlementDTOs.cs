@@ -3,7 +3,7 @@ namespace PSstore.DTOs
     // Check game access result
     public class GameAccessResultDTO
     {
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
         public string GameName { get; set; } = string.Empty;
         public bool CanAccess { get; set; }
         public string AccessType { get; set; } = string.Empty; // "FREE", "PURCHASED", "SUBSCRIPTION", "NO_ACCESS"
@@ -18,7 +18,7 @@ namespace PSstore.DTOs
     // Bulk access check (multiple games)
     public class UserLibraryDTO
     {
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         public List<GameAccessResultDTO> AccessibleGames { get; set; } = new List<GameAccessResultDTO>();
         public int TotalPurchasedGames { get; set; }
         public int TotalSubscriptionGames { get; set; }

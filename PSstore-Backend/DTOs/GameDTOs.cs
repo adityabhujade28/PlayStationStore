@@ -5,7 +5,7 @@ namespace PSstore.DTOs
     // Response for game details
     public class GameDTO
     {
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
         public string GameName { get; set; } = string.Empty;
         public string? PublishedBy { get; set; }
         public DateTime? ReleaseDate { get; set; }

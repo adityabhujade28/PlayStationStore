@@ -1,19 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Signup.module.css';
+import apiClient from '../utils/apiClient';
 
-function Signup({ onSwitchToLogin }) {
+function Signup() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     userName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    age: '',
-    regionId: '1'
+    dateOfBirth: '',
+    countryId: ''
   });
+  const [countries, setCountries] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
+
+  // Calculate max date (16 years ago from today)
+  const getMaxDate = () => {
+    const today = new Date();
+    const maxDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate());
+    return maxDate.toISOString().split('T')[0];
+  };
+
+  // Calculate age from date of birth
+  const calculateAge = (dobStr) => {
+    if (!dobStr) return 0;
+    const dob = new Date(dobStr);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Fetch countries from API
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        // Use apiClient - auth headers are not needed for countries endpoint but harmless if added
+        // The API might be public, but apiClient adds token if available.
+        // If the endpoint is public and token is invalid/expired, there might be check issues?
+        // Usually safe. However, Signup page access implies potentially not logged in.
+        // apiClient retrieves token from localStorage. If not present, it just sends request without token?
+        // Let's check apiClient implementation.
+        // apiClient implementation:
+        // const token = localStorage.getItem('token');
+        // if (token) headers['Authorization'] = `Bearer ${token}`;
+        // So if not logged in, no header. This is fine.
+
+        const response = await apiClient.get('/countries');
+        if (response.ok) {
+          const data = await response.json();
+          setCountries(data);
+        } else {
+          console.error('Failed to fetch countries:', response.status);
+        }
+      } catch (err) {
+        console.error('Error fetching countries:', err);
+        // Fallback to hardcoded countries if API fails
+        setCountries([
+          { countryId: 1, countryCode: 'IN', countryName: 'India', currency: 'INR' },
+          { countryId: 2, countryCode: 'UK', countryName: 'United Kingdom', currency: 'GBP' }
+        ]);
+      }
+    };
+    fetchCountries();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -37,14 +95,34 @@ function Signup({ onSwitchToLogin }) {
       return;
     }
 
+    // Validate date of birth
+    if (!formData.dateOfBirth) {
+      setError('Date of birth is required');
+      return;
+    }
+
+    const age = calculateAge(formData.dateOfBirth);
+    if (age < 16) {
+      setError('You must be at least 16 years old to register');
+      return;
+    }
+
+    if (!formData.countryId) {
+      setError('Please select a country');
+      return;
+    }
+
     setLoading(true);
+
+    // Calculate age from date of birth to send to backend
+    const calculatedAge = calculateAge(formData.dateOfBirth);
 
     const result = await signup(
       formData.userName,
       formData.email,
       formData.password,
-      parseInt(formData.age) || null,
-      parseInt(formData.regionId)
+      calculatedAge,
+      parseInt(formData.countryId)
     );
 
     if (!result.success) {
@@ -58,9 +136,9 @@ function Signup({ onSwitchToLogin }) {
     <div className={styles.signupContainer}>
       <div className={styles.signupCard}>
         <h2 className={styles.signupTitle}>Create Account</h2>
-        
+
         {error && <div className={styles.errorMessage}>{error}</div>}
-        
+
         <form onSubmit={handleSubmit} className={styles.signupForm}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Username</label>
@@ -115,37 +193,39 @@ function Signup({ onSwitchToLogin }) {
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Age (Optional)</label>
+            <label className={styles.formLabel}>Date of Birth</label>
             <input
-              type="number"
-              name="age"
+              type="date"
+              name="dateOfBirth"
               className={styles.formInput}
-              value={formData.age}
+              value={formData.dateOfBirth}
               onChange={handleChange}
-              placeholder="Enter your age"
-              min="0"
-              max="150"
+              max={getMaxDate()}
+              required
             />
+            <small className={styles.formHint}>You must be at least 16 years old</small>
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Region</label>
+            <label className={styles.formLabel}>Country</label>
             <select
-              name="regionId"
+              name="countryId"
               className={styles.formSelect}
-              value={formData.regionId}
+              value={formData.countryId}
               onChange={handleChange}
               required
             >
-              <option value="1">United States</option>
-              <option value="2">Europe</option>
-              <option value="3">Asia</option>
-              <option value="4">Other</option>
+              <option value="">Select a country</option>
+              {countries.map(country => (
+                <option key={country.countryId} value={country.countryId}>
+                  {country.countryName} ({country.countryCode})
+                </option>
+              ))}
             </select>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.signupButton}
             disabled={loading}
           >
@@ -154,7 +234,7 @@ function Signup({ onSwitchToLogin }) {
         </form>
 
         <div className={styles.loginLink}>
-          Already have an account? <a onClick={onSwitchToLogin}>Login</a>
+          Already have an account? <a onClick={() => navigate('/login')}>Login</a>
         </div>
       </div>
     </div>

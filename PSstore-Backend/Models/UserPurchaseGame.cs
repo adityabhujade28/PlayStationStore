@@ -6,14 +6,13 @@ namespace PSstore.Models
     public class UserPurchaseGame
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int PurchaseId { get; set; }
+        public Guid PurchaseId { get; set; }
 
         [Required]
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
 
         [Required]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(10,2)")]

@@ -6,15 +6,16 @@ namespace PSstore.Models
     public class SubscriptionPlan
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SubscriptionId { get; set; }
+        public Guid SubscriptionId { get; set; }
 
         [Required]
         [MaxLength(100)]
         public string SubscriptionType { get; set; } = string.Empty;
 
+        public DateTime? UpdatedAt { get; set; }
+
         // Navigation properties
         public ICollection<GameSubscription> GameSubscriptions { get; set; } = new List<GameSubscription>();
-        public ICollection<SubscriptionPlanRegion> SubscriptionPlanRegions { get; set; } = new List<SubscriptionPlanRegion>();
+        public ICollection<SubscriptionPlanCountry> SubscriptionPlanCountries { get; set; } = new List<SubscriptionPlanCountry>();
     }
 }
