@@ -1,35 +1,67 @@
 import { createContext, useState, useContext, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import apiClient from '../utils/apiClient';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if token exists and is valid on mount
+    // Check if token exists on mount and validate it
     const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+
+    if (storedToken) {
+      try {
+        const decoded = jwtDecode(storedToken);
+        const currentTime = Date.now() / 1000;
+
+        if (decoded.exp < currentTime) {
+          // Token expired
+          console.log('Token expired, logging out');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+        } else {
+          // Token valid
+          setToken(storedToken);
+        }
+      } catch (error) {
+        // Invalid token format
+        console.error('Invalid token found, clearing storage', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+      }
     }
     setLoading(false);
   }, []);
 
+  // Decode token to get user info
+  const getDecodedToken = () => {
+    if (!token) return null;
+
+    try {
+      const decoded = jwtDecode(token);
+      return {
+        userId: decoded.sub, // Guid as string
+        role: decoded.role || decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'],
+        jti: decoded.jti,
+        exp: decoded.exp,
+        iat: decoded.iat
+      };
+    } catch (error) {
+      console.error('Failed to decode token:', error);
+      return null;
+    }
+  };
+
   const login = async (email, password) => {
     try {
-      const response = await fetch('http://localhost:5160/api/users/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userEmail: email,
-          userPassword: password,
-        }),
+      const response = await apiClient.post('/users/login', {
+        userEmail: email,
+        userPassword: password,
       });
 
       if (!response.ok) {
@@ -38,20 +70,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
-      
+
+      // Only store token in localStorage (remove any old user data)
+      localStorage.removeItem('user'); // Clean up old user data
       localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify({
-        userId: data.userId,
-        userName: data.userName,
-        userEmail: data.userEmail,
-      }));
-      
       setToken(data.token);
-      setUser({
-        userId: data.userId,
-        userName: data.userName,
-        userEmail: data.userEmail,
-      });
 
       return { success: true };
     } catch (error) {
@@ -59,20 +82,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (userName, email, password, age, regionId) => {
+  const signup = async (userName, email, password, age, countryId) => {
     try {
-      const response = await fetch('http://localhost:5160/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userName,
-          userEmail: email,
-          userPassword: password,
-          age,
-          regionId,
-        }),
+      const response = await apiClient.post('/users', {
+        userName,
+        userEmail: email,
+        userPassword: password,
+        age,
+        countryId,
       });
 
       if (!response.ok) {
@@ -89,9 +106,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem('user'); // Clean up old user data
     setToken(null);
-    setUser(null);
   };
 
   const isAuthenticated = () => {
@@ -99,8 +115,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const value = {
-    user,
     token,
+    getDecodedToken,
     login,
     signup,
     logout,

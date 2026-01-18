@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace PSstore.DTOs
 {
     // Create new user
+    // Create new user
     public class CreateUserDTO
     {
         [Required]
@@ -18,11 +19,11 @@ namespace PSstore.DTOs
         [MinLength(6)]
         public string UserPassword { get; set; } = string.Empty;
 
-        [Range(0, 150)]
-        public int? Age { get; set; }
-
         [Required]
-        public int RegionId { get; set; }
+        [Range(0, 150)]
+        public int Age { get; set; }
+
+        public Guid? CountryId { get; set; }
     }
 
     // Update user details
@@ -44,8 +45,8 @@ namespace PSstore.DTOs
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
-        public int? Age { get; set; }
-        public string? SubscriptionStatus { get; set; }
+        public int Age { get; set; }
+        // SubscriptionStatus is removed or handled via UserDTO bool
         public DateTime CreatedAt { get; set; }
         public RegionDTO? CurrentRegion { get; set; }
     }
@@ -53,12 +54,13 @@ namespace PSstore.DTOs
     // Simple user DTO
     public class UserDTO
     {
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
-        public int? Age { get; set; }
-        public bool SubscriptionStatus { get; set; }
+        public int Age { get; set; }
+        public bool SubscriptionStatus { get; set; } // Kept as bool (calculated), not string
         public DateTime CreatedAt { get; set; }
+        public Guid? CountryId { get; set; }
     }
 
     // User login
@@ -75,7 +77,7 @@ namespace PSstore.DTOs
     // Login response with JWT token
     public class LoginResponseDTO
     {
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
         public string Token { get; set; } = string.Empty;

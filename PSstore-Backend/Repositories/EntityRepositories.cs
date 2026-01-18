@@ -14,15 +14,15 @@ namespace PSstore.Repositories
             return await _dbSet.FirstOrDefaultAsync(u => u.UserEmail == email);
         }
 
-        public async Task<User?> GetUserWithRegionAsync(int userId)
+        public async Task<User?> GetUserWithRegionAsync(Guid userId)
         {
             return await _dbSet
-                .Include(u => u.UsersRegions.Where(ur => ur.IsActive))
-                    .ThenInclude(ur => ur.Region)
+                .Include(u => u.Country)
+                    .ThenInclude(c => c.Region)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
         }
 
-        public async Task<User?> GetUserWithPurchasesAsync(int userId)
+        public async Task<User?> GetUserWithPurchasesAsync(Guid userId)
         {
             return await _dbSet
                 .Include(u => u.UserPurchasedGames)
@@ -30,12 +30,12 @@ namespace PSstore.Repositories
                 .FirstOrDefaultAsync(u => u.UserId == userId);
         }
 
-        public async Task<User?> GetUserWithSubscriptionsAsync(int userId)
+        public async Task<User?> GetUserWithSubscriptionsAsync(Guid userId)
         {
             return await _dbSet
                 .Include(u => u.UserSubscriptionPlans)
-                    .ThenInclude(usp => usp.SubscriptionPlanRegion)
-                        .ThenInclude(spr => spr.SubscriptionPlan)
+                    .ThenInclude(usp => usp.SubscriptionPlanCountry)
+                        .ThenInclude(spc => spc.SubscriptionPlan)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
         }
 
@@ -44,7 +44,7 @@ namespace PSstore.Repositories
             return await _dbSet.AnyAsync(u => u.UserEmail == email);
         }
 
-        public async Task SoftDeleteAsync(int userId)
+        public async Task SoftDeleteAsync(Guid userId)
         {
             var user = await _dbSet.FindAsync(userId);
             if (user != null)
@@ -55,7 +55,7 @@ namespace PSstore.Repositories
             }
         }
 
-        public async Task<bool> RestoreAsync(int userId)
+        public async Task<bool> RestoreAsync(Guid userId)
         {
             var user = await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.UserId == userId);
             if (user != null && user.IsDeleted)
@@ -73,7 +73,7 @@ namespace PSstore.Repositories
     {
         public GameRepository(AppDbContext context) : base(context) { }
 
-        public async Task<Game?> GetGameWithCategoriesAsync(int gameId)
+        public async Task<Game?> GetGameWithCategoriesAsync(Guid gameId)
         {
             return await _dbSet
                 .Include(g => g.GameCategories)
@@ -81,7 +81,7 @@ namespace PSstore.Repositories
                 .FirstOrDefaultAsync(g => g.GameId == gameId);
         }
 
-        public async Task<Game?> GetGameWithSubscriptionsAsync(int gameId)
+        public async Task<Game?> GetGameWithSubscriptionsAsync(Guid gameId)
         {
             return await _dbSet
                 .Include(g => g.GameSubscriptions)
@@ -89,7 +89,7 @@ namespace PSstore.Repositories
                 .FirstOrDefaultAsync(g => g.GameId == gameId);
         }
 
-        public async Task<IEnumerable<Game>> GetGamesByCategoryAsync(int categoryId)
+        public async Task<IEnumerable<Game>> GetGamesByCategoryAsync(Guid categoryId)
         {
             return await _dbSet
                 .Include(g => g.GameCategories)
@@ -102,6 +102,21 @@ namespace PSstore.Repositories
             return await _dbSet.Where(g => g.FreeToPlay).ToListAsync();
         }
 
+        public async Task<IEnumerable<Guid>> GetFreeGameIdsAsync()
+        {
+            return await _dbSet
+                .Where(g => g.FreeToPlay)
+                .Select(g => g.GameId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Game>> GetGamesByIdsAsync(IEnumerable<Guid> gameIds)
+        {
+            return await _dbSet
+                .Where(g => gameIds.Contains(g.GameId))
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Game>> SearchGamesAsync(string searchTerm)
         {
             return await _dbSet
@@ -110,7 +125,7 @@ namespace PSstore.Repositories
                 .ToListAsync();
         }
 
-        public async Task SoftDeleteAsync(int gameId)
+        public async Task SoftDeleteAsync(Guid gameId)
         {
             var game = await _dbSet.FindAsync(gameId);
             if (game != null)
@@ -121,7 +136,7 @@ namespace PSstore.Repositories
             }
         }
 
-        public async Task<bool> RestoreAsync(int gameId)
+        public async Task<bool> RestoreAsync(Guid gameId)
         {
             var game = await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(g => g.GameId == gameId);
             if (game != null && game.IsDeleted)
@@ -144,7 +159,7 @@ namespace PSstore.Repositories
     {
         public CategoryRepository(AppDbContext context) : base(context) { }
 
-        public async Task<Category?> GetCategoryWithGamesAsync(int categoryId)
+        public async Task<Category?> GetCategoryWithGamesAsync(Guid categoryId)
         {
             return await _dbSet
                 .Include(c => c.GameCategories)
@@ -157,7 +172,7 @@ namespace PSstore.Repositories
             return await _dbSet.AnyAsync(c => c.CategoryName == categoryName);
         }
 
-        public async Task SoftDeleteAsync(int categoryId)
+        public async Task SoftDeleteAsync(Guid categoryId)
         {
             var category = await _dbSet.FindAsync(categoryId);
             if (category != null)
@@ -168,7 +183,7 @@ namespace PSstore.Repositories
             }
         }
 
-        public async Task<bool> RestoreAsync(int categoryId)
+        public async Task<bool> RestoreAsync(Guid categoryId)
         {
             var category = await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.CategoryId == categoryId);
             if (category != null && category.IsDeleted)
@@ -196,7 +211,7 @@ namespace PSstore.Repositories
     {
         public UserPurchaseGameRepository(AppDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<UserPurchaseGame>> GetUserPurchasesAsync(int userId)
+        public async Task<IEnumerable<UserPurchaseGame>> GetUserPurchasesAsync(Guid userId)
         {
             return await _dbSet
                 .Include(upg => upg.Game)
@@ -205,7 +220,7 @@ namespace PSstore.Repositories
                 .ToListAsync();
         }
 
-        public async Task<UserPurchaseGame?> GetPurchaseDetailsAsync(int purchaseId)
+        public async Task<UserPurchaseGame?> GetPurchaseDetailsAsync(Guid purchaseId)
         {
             return await _dbSet
                 .Include(upg => upg.Game)
@@ -213,9 +228,17 @@ namespace PSstore.Repositories
                 .FirstOrDefaultAsync(upg => upg.PurchaseId == purchaseId);
         }
 
-        public async Task<bool> HasUserPurchasedGameAsync(int userId, int gameId)
+        public async Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId)
         {
             return await _dbSet.AnyAsync(upg => upg.UserId == userId && upg.GameId == gameId);
+        }
+
+        public async Task<IEnumerable<Guid>> GetPurchasedGameIdsAsync(Guid userId)
+        {
+            return await _dbSet
+                .Where(upg => upg.UserId == userId)
+                .Select(upg => upg.GameId)
+                .ToListAsync();
         }
     }
 
@@ -223,15 +246,15 @@ namespace PSstore.Repositories
     {
         public SubscriptionPlanRepository(AppDbContext context) : base(context) { }
 
-        public async Task<SubscriptionPlan?> GetPlanWithRegionsAsync(int planId)
+        public async Task<SubscriptionPlan?> GetPlanWithRegionsAsync(Guid planId)
         {
             return await _dbSet
-                .Include(sp => sp.SubscriptionPlanRegions)
-                    .ThenInclude(spr => spr.Region)
+                .Include(sp => sp.SubscriptionPlanCountries)
+                    .ThenInclude(spc => spc.Country)
                 .FirstOrDefaultAsync(sp => sp.SubscriptionId == planId);
         }
 
-        public async Task<SubscriptionPlan?> GetPlanWithGamesAsync(int planId)
+        public async Task<SubscriptionPlan?> GetPlanWithGamesAsync(Guid planId)
         {
             return await _dbSet
                 .Include(sp => sp.GameSubscriptions)
@@ -242,31 +265,31 @@ namespace PSstore.Repositories
         public async Task<IEnumerable<SubscriptionPlan>> GetAllPlansWithDetailsAsync()
         {
             return await _dbSet
-                .Include(sp => sp.SubscriptionPlanRegions)
-                    .ThenInclude(spr => spr.Region)
+                .Include(sp => sp.SubscriptionPlanCountries)
+                    .ThenInclude(spc => spc.Country)
                 .Include(sp => sp.GameSubscriptions)
                     .ThenInclude(gs => gs.Game)
                 .ToListAsync();
         }
     }
 
-    public class SubscriptionPlanRegionRepository : BaseRepository<SubscriptionPlanRegion>, ISubscriptionPlanRegionRepository
+public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlanCountry>, ISubscriptionPlanCountryRepository
+{
+    public SubscriptionPlanCountryRepository(AppDbContext context) : base(context) { }
+
+    public async Task<SubscriptionPlanCountry?> GetPlanCountryDetailsAsync(Guid planCountryId)
     {
-        public SubscriptionPlanRegionRepository(AppDbContext context) : base(context) { }
+        return await _dbSet
+            .Include(spc => spc.SubscriptionPlan)
+            .Include(spc => spc.Country)
+            .FirstOrDefaultAsync(spc => spc.SubscriptionPlanCountryId == planCountryId);
+    }
 
-        public async Task<SubscriptionPlanRegion?> GetPlanRegionDetailsAsync(int planRegionId)
-        {
-            return await _dbSet
-                .Include(spr => spr.SubscriptionPlan)
-                .Include(spr => spr.Region)
-                .FirstOrDefaultAsync(spr => spr.SubscriptionPlanRegionId == planRegionId);
-        }
-
-        public async Task<IEnumerable<SubscriptionPlanRegion>> GetPlansByRegionAsync(int regionId)
-        {
-            return await _dbSet
-                .Include(spr => spr.SubscriptionPlan)
-                .Where(spr => spr.RegionId == regionId)
+    public async Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId)
+    {
+        return await _dbSet
+            .Include(spc => spc.SubscriptionPlan)
+            .Where(spc => spc.CountryId == countryId)
                 .ToListAsync();
         }
     }
@@ -275,30 +298,30 @@ namespace PSstore.Repositories
     {
         public UserSubscriptionPlanRepository(AppDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<UserSubscriptionPlan>> GetUserSubscriptionsAsync(int userId)
+        public async Task<IEnumerable<UserSubscriptionPlan>> GetUserSubscriptionsAsync(Guid userId)
         {
             return await _dbSet
-                .Include(usp => usp.SubscriptionPlanRegion)
-                    .ThenInclude(spr => spr.SubscriptionPlan)
-                .Include(usp => usp.SubscriptionPlanRegion)
-                    .ThenInclude(spr => spr.Region)
+                .Include(usp => usp.SubscriptionPlanCountry)
+                    .ThenInclude(spc => spc.SubscriptionPlan)
+                .Include(usp => usp.SubscriptionPlanCountry)
+                    .ThenInclude(spc => spc.Country)
                 .Where(usp => usp.UserId == userId)
                 .OrderByDescending(usp => usp.PlanStartDate)
                 .ToListAsync();
         }
 
-        public async Task<UserSubscriptionPlan?> GetActiveSubscriptionAsync(int userId)
+        public async Task<UserSubscriptionPlan?> GetActiveSubscriptionAsync(Guid userId)
         {
             var now = DateTime.UtcNow;
             return await _dbSet
-                .Include(usp => usp.SubscriptionPlanRegion)
-                    .ThenInclude(spr => spr.SubscriptionPlan)
+                .Include(usp => usp.SubscriptionPlanCountry)
+                    .ThenInclude(spc => spc.SubscriptionPlan)
                 .FirstOrDefaultAsync(usp => usp.UserId == userId && 
                                            usp.PlanStartDate <= now && 
                                            usp.PlanEndDate >= now);
         }
 
-        public async Task<bool> HasActiveSubscriptionAsync(int userId)
+        public async Task<bool> HasActiveSubscriptionAsync(Guid userId)
         {
             var now = DateTime.UtcNow;
             return await _dbSet.AnyAsync(usp => usp.UserId == userId && 
@@ -319,12 +342,12 @@ namespace PSstore.Repositories
     {
         public CartRepository(AppDbContext context) : base(context) { }
 
-        public async Task<Cart?> GetUserCartAsync(int userId)
+        public async Task<Cart?> GetUserCartAsync(Guid userId)
         {
             return await _dbSet.FirstOrDefaultAsync(c => c.UserId == userId);
         }
 
-        public async Task<Cart?> GetCartWithItemsAsync(int cartId)
+        public async Task<Cart?> GetCartWithItemsAsync(Guid cartId)
         {
             return await _dbSet
                 .Include(c => c.CartItems)
@@ -332,7 +355,7 @@ namespace PSstore.Repositories
                 .FirstOrDefaultAsync(c => c.CartId == cartId);
         }
 
-        public async Task ClearCartAsync(int cartId)
+        public async Task ClearCartAsync(Guid cartId)
         {
             var cart = await GetCartWithItemsAsync(cartId);
             if (cart != null)
@@ -347,7 +370,7 @@ namespace PSstore.Repositories
     {
         public CartItemRepository(AppDbContext context) : base(context) { }
 
-        public async Task<IEnumerable<CartItem>> GetCartItemsAsync(int cartId)
+        public async Task<IEnumerable<CartItem>> GetCartItemsAsync(Guid cartId)
         {
             return await _dbSet
                 .Include(ci => ci.Game)
@@ -355,14 +378,14 @@ namespace PSstore.Repositories
                 .ToListAsync();
         }
 
-        public async Task<CartItem?> GetCartItemWithGameAsync(int cartItemId)
+        public async Task<CartItem?> GetCartItemWithGameAsync(Guid cartItemId)
         {
             return await _dbSet
                 .Include(ci => ci.Game)
                 .FirstOrDefaultAsync(ci => ci.CartItemId == cartItemId);
         }
 
-        public async Task<bool> IsGameInCartAsync(int cartId, int gameId)
+        public async Task<bool> IsGameInCartAsync(Guid cartId, Guid gameId)
         {
             return await _dbSet.AnyAsync(ci => ci.CartId == cartId && ci.GameId == gameId);
         }
@@ -382,7 +405,7 @@ namespace PSstore.Repositories
             return await _dbSet.AnyAsync(a => a.AdminEmail == email);
         }
 
-        public async Task SoftDeleteAsync(int adminId)
+        public async Task SoftDeleteAsync(Guid adminId)
         {
             var admin = await _dbSet.FindAsync(adminId);
             if (admin != null)
@@ -393,7 +416,7 @@ namespace PSstore.Repositories
             }
         }
 
-        public async Task<bool> RestoreAsync(int adminId)
+        public async Task<bool> RestoreAsync(Guid adminId)
         {
             var admin = await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.AdminId == adminId);
             if (admin != null && admin.IsDeleted)
@@ -404,6 +427,48 @@ namespace PSstore.Repositories
                 return true;
             }
             return false;
+        }
+    }
+
+    // Country Repository
+    public class CountryRepository : BaseRepository<Country>, ICountryRepository
+    {
+        public CountryRepository(AppDbContext context) : base(context) { }
+
+        public async Task<Country?> GetByCodeAsync(string countryCode)
+        {
+            return await _dbSet
+                .Include(c => c.Region)
+                .FirstOrDefaultAsync(c => c.CountryCode == countryCode);
+        }
+
+        public async Task<IEnumerable<Country>> GetCountriesByRegionAsync(Guid regionId)
+        {
+            return await _dbSet
+                .Where(c => c.RegionId == regionId)
+                .ToListAsync();
+        }
+    }
+
+    // GameCountry Repository
+    public class GameCountryRepository : BaseRepository<GameCountry>, IGameCountryRepository
+    {
+        public GameCountryRepository(AppDbContext context) : base(context) { }
+
+        public async Task<GameCountry?> GetGamePricingAsync(Guid gameId, Guid countryId)
+        {
+            return await _dbSet
+                .Include(gc => gc.Game)
+                .Include(gc => gc.Country)
+                .FirstOrDefaultAsync(gc => gc.GameId == gameId && gc.CountryId == countryId);
+        }
+
+        public async Task<IEnumerable<GameCountry>> GetGamePricesByCountryAsync(Guid countryId)
+        {
+            return await _dbSet
+                .Include(gc => gc.Game)
+                .Where(gc => gc.CountryId == countryId)
+                .ToListAsync();
         }
     }
 }

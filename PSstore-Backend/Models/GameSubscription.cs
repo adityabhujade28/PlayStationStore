@@ -6,10 +6,10 @@ namespace PSstore.Models
     public class GameSubscription
     {
         [Required]
-        public int GameId { get; set; }
+        public Guid GameId { get; set; }
 
         [Required]
-        public int SubscriptionId { get; set; }
+        public Guid SubscriptionId { get; set; }
 
         // Navigation properties
         [ForeignKey(nameof(GameId))]

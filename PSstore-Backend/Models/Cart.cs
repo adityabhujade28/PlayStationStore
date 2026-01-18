@@ -6,11 +6,10 @@ namespace PSstore.Models
     public class Cart
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int CartId { get; set; }
+        public Guid CartId { get; set; }
 
         [Required]
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
 
         [Column(TypeName = "decimal(10,2)")]
         public decimal TotalAmount { get; set; }

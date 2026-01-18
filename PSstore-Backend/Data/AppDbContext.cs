@@ -13,12 +13,13 @@ namespace PSstore.Data
         public DbSet<User> Users { get; set; }
         public DbSet<Admin> Admins { get; set; }
         public DbSet<Region> Regions { get; set; }
-        public DbSet<UsersRegion> UsersRegions { get; set; }
+        public DbSet<Country> Countries { get; set; }
         public DbSet<Game> Games { get; set; }
+        public DbSet<GameCountry> GameCountries { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<GameCategory> GameCategories { get; set; }
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
-        public DbSet<SubscriptionPlanRegion> SubscriptionPlanRegions { get; set; }
+        public DbSet<SubscriptionPlanCountry> SubscriptionPlanCountries { get; set; }
         public DbSet<UserSubscriptionPlan> UserSubscriptionPlans { get; set; }
         public DbSet<GameSubscription> GameSubscriptions { get; set; }
         public DbSet<UserPurchaseGame> UserPurchaseGames { get; set; }
@@ -37,25 +38,29 @@ namespace PSstore.Data
                 entity.Property(r => r.RegionCode).IsRequired().HasMaxLength(10);
             });
 
+            // Configure Country
+            modelBuilder.Entity<Country>(entity =>
+            {
+                entity.HasKey(c => c.CountryId);
+                entity.HasIndex(c => c.CountryCode).IsUnique();
+                entity.Property(c => c.CountryCode).IsRequired().HasMaxLength(10);
+                entity.Property(c => c.Currency).IsRequired().HasMaxLength(10);
+
+                entity.HasOne(c => c.Region)
+                    .WithMany(r => r.Countries)
+                    .HasForeignKey(c => c.RegionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // Configure User
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(u => u.UserId);
                 entity.HasIndex(u => u.UserEmail).IsUnique();
-            });
 
-            // Configure UsersRegion
-            modelBuilder.Entity<UsersRegion>(entity =>
-            {
-                entity.HasKey(ur => ur.UserRegionId);
-                entity.HasOne(ur => ur.User)
-                    .WithMany(u => u.UsersRegions)
-                    .HasForeignKey(ur => ur.UserId)
-                    .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(ur => ur.Region)
-                    .WithMany(r => r.UsersRegions)
-                    .HasForeignKey(ur => ur.RegionId)
+                entity.HasOne(u => u.Country)
+                    .WithMany(c => c.Users)
+                    .HasForeignKey(u => u.CountryId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -63,7 +68,24 @@ namespace PSstore.Data
             modelBuilder.Entity<Game>(entity =>
             {
                 entity.HasKey(g => g.GameId);
-                entity.Property(g => g.Price).HasColumnType("decimal(10,2)");
+            });
+
+            // Configure GameCountry (game pricing per country)
+            modelBuilder.Entity<GameCountry>(entity =>
+            {
+                entity.HasKey(gc => gc.GameCountryId);
+                entity.HasIndex(gc => new { gc.GameId, gc.CountryId }).IsUnique();
+                entity.Property(gc => gc.Price).HasColumnType("decimal(10,2)");
+
+                entity.HasOne(gc => gc.Game)
+                    .WithMany(g => g.GameCountries)
+                    .HasForeignKey(gc => gc.GameId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(gc => gc.Country)
+                    .WithMany(c => c.GameCountries)
+                    .HasForeignKey(gc => gc.CountryId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
 
             // Configure Category
@@ -94,21 +116,21 @@ namespace PSstore.Data
                 entity.HasKey(sp => sp.SubscriptionId);
             });
 
-            // Configure SubscriptionPlanRegion
-            modelBuilder.Entity<SubscriptionPlanRegion>(entity =>
+            // Configure SubscriptionPlanCountry
+            modelBuilder.Entity<SubscriptionPlanCountry>(entity =>
             {
-                entity.HasKey(spr => spr.SubscriptionPlanRegionId);
-                entity.HasIndex(spr => new { spr.SubscriptionId, spr.RegionId, spr.DurationMonths }).IsUnique();
-                entity.Property(spr => spr.Price).HasColumnType("decimal(10,2)");
+                entity.HasKey(spc => spc.SubscriptionPlanCountryId);
+                entity.HasIndex(spc => new { spc.SubscriptionId, spc.CountryId, spc.DurationMonths }).IsUnique();
+                entity.Property(spc => spc.Price).HasColumnType("decimal(10,2)");
 
-                entity.HasOne(spr => spr.SubscriptionPlan)
-                    .WithMany(sp => sp.SubscriptionPlanRegions)
-                    .HasForeignKey(spr => spr.SubscriptionId)
+                entity.HasOne(spc => spc.SubscriptionPlan)
+                    .WithMany(sp => sp.SubscriptionPlanCountries)
+                    .HasForeignKey(spc => spc.SubscriptionId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(spr => spr.Region)
-                    .WithMany(r => r.SubscriptionPlanRegions)
-                    .HasForeignKey(spr => spr.RegionId)
+                entity.HasOne(spc => spc.Country)
+                    .WithMany(c => c.SubscriptionPlanCountries)
+                    .HasForeignKey(spc => spc.CountryId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -138,9 +160,9 @@ namespace PSstore.Data
                     .HasForeignKey(usp => usp.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                entity.HasOne(usp => usp.SubscriptionPlanRegion)
-                    .WithMany(spr => spr.UserSubscriptionPlans)
-                    .HasForeignKey(usp => usp.SubscriptionPlanRegionId)
+                entity.HasOne(usp => usp.SubscriptionPlanCountry)
+                    .WithMany(spc => spc.UserSubscriptionPlans)
+                    .HasForeignKey(usp => usp.SubscriptionPlanCountryId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
@@ -190,9 +212,6 @@ namespace PSstore.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Seed data
-            SeedData(modelBuilder);
-
             // Global query filters for soft delete
             modelBuilder.Entity<User>().HasQueryFilter(u => !u.IsDeleted);
             modelBuilder.Entity<Game>().HasQueryFilter(g => !g.IsDeleted);
@@ -200,107 +219,23 @@ namespace PSstore.Data
             modelBuilder.Entity<Category>().HasQueryFilter(c => !c.IsDeleted);
         }
 
-        private void SeedData(ModelBuilder modelBuilder)
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            // Seed Regions
-            modelBuilder.Entity<Region>().HasData(
-                new Region { RegionId = 1, RegionCode = "US", RegionName = "United States", Currency = "USD", RegionTimezone = "America/New_York" },
-                new Region { RegionId = 2, RegionCode = "EU", RegionName = "Europe", Currency = "EUR", RegionTimezone = "Europe/London" },
-                new Region { RegionId = 3, RegionCode = "JP", RegionName = "Japan", Currency = "JPY", RegionTimezone = "Asia/Tokyo" },
-                new Region { RegionId = 4, RegionCode = "IN", RegionName = "India", Currency = "INR", RegionTimezone = "Asia/Kolkata" }
-            );
+            var entries = ChangeTracker
+                .Entries()
+                .Where(e => e.Entity is User || e.Entity is Game || e.Entity is SubscriptionPlan)
+                .Where(e => e.State == EntityState.Modified);
 
-            // Seed Categories
-            modelBuilder.Entity<Category>().HasData(
-                new Category { CategoryId = 1, CategoryName = "Action", IsDeleted = false },
-                new Category { CategoryId = 2, CategoryName = "Adventure", IsDeleted = false },
-                new Category { CategoryId = 3, CategoryName = "RPG", IsDeleted = false },
-                new Category { CategoryId = 4, CategoryName = "Sports", IsDeleted = false },
-                new Category { CategoryId = 5, CategoryName = "Racing", IsDeleted = false }
-            );
+            foreach (var entry in entries)
+            {
+                // Use reflection or interface if possible, but identifying by type is safe here
+                if (entry.Entity is User user) user.UpdatedAt = DateTime.UtcNow;
+                if (entry.Entity is Game game) game.UpdatedAt = DateTime.UtcNow;
+                if (entry.Entity is SubscriptionPlan plan) plan.UpdatedAt = DateTime.UtcNow;
+            }
 
-            // Seed Games
-            modelBuilder.Entity<Game>().HasData(
-                new Game { GameId = 1, GameName = "God of War", PublishedBy = "Sony", ReleaseDate = new DateTime(2018, 4, 20), FreeToPlay = false, Price = 49.99m, IsMultiplayer = false, IsDeleted = false },
-                new Game { GameId = 2, GameName = "Spider-Man", PublishedBy = "Sony", ReleaseDate = new DateTime(2018, 9, 7), FreeToPlay = false, Price = 59.99m, IsMultiplayer = false, IsDeleted = false },
-                new Game { GameId = 3, GameName = "Fortnite", PublishedBy = "Epic Games", ReleaseDate = new DateTime(2017, 7, 25), FreeToPlay = true, Price = 0m, IsMultiplayer = true, IsDeleted = false },
-                new Game { GameId = 4, GameName = "Gran Turismo 7", PublishedBy = "Sony", ReleaseDate = new DateTime(2022, 3, 4), FreeToPlay = false, Price = 69.99m, IsMultiplayer = true, IsDeleted = false }
-            );
-
-            // Seed GameCategory
-            modelBuilder.Entity<GameCategory>().HasData(
-                new GameCategory { GameId = 1, CategoryId = 1 }, 
-                new GameCategory { GameId = 1, CategoryId = 2 }, // God of War - Adventure
-                new GameCategory { GameId = 2, CategoryId = 1 }, // Spider-Man - Action
-                new GameCategory { GameId = 2, CategoryId = 2 }, // Spider-Man - Adventure
-                new GameCategory { GameId = 3, CategoryId = 1 }, // Fortnite - Action
-                new GameCategory { GameId = 4, CategoryId = 5 }  // Gran Turismo - Racing
-            );
-
-            // Seed SubscriptionPlans
-            modelBuilder.Entity<SubscriptionPlan>().HasData(
-                new SubscriptionPlan { SubscriptionId = 1, SubscriptionType = "PlayStation Plus Essential" },
-                new SubscriptionPlan { SubscriptionId = 2, SubscriptionType = "PlayStation Plus Extra" },
-                new SubscriptionPlan { SubscriptionId = 3, SubscriptionType = "PlayStation Plus Premium" }
-            );
-
-            // Seed SubscriptionPlanRegion (region-specific pricing with duration options)
-            modelBuilder.Entity<SubscriptionPlanRegion>().HasData(
-                // Essential - US - 1 month
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 1, SubscriptionId = 1, RegionId = 1, DurationMonths = 1, Price = 9.99m, Currency = "USD" },
-                // Essential - US - 3 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 2, SubscriptionId = 1, RegionId = 1, DurationMonths = 3, Price = 24.99m, Currency = "USD" },
-                // Essential - US - 12 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 3, SubscriptionId = 1, RegionId = 1, DurationMonths = 12, Price = 59.99m, Currency = "USD" },
-                // Essential - EU - 1 month
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 4, SubscriptionId = 1, RegionId = 2, DurationMonths = 1, Price = 8.99m, Currency = "EUR" },
-                // Essential - EU - 3 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 5, SubscriptionId = 1, RegionId = 2, DurationMonths = 3, Price = 22.99m, Currency = "EUR" },
-                // Essential - EU - 12 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 6, SubscriptionId = 1, RegionId = 2, DurationMonths = 12, Price = 54.99m, Currency = "EUR" },
-                // Extra - US - 1 month
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 7, SubscriptionId = 2, RegionId = 1, DurationMonths = 1, Price = 14.99m, Currency = "USD" },
-                // Extra - US - 3 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 8, SubscriptionId = 2, RegionId = 1, DurationMonths = 3, Price = 39.99m, Currency = "USD" },
-                // Extra - US - 12 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 9, SubscriptionId = 2, RegionId = 1, DurationMonths = 12, Price = 99.99m, Currency = "USD" },
-                // Extra - EU - 1 month
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 10, SubscriptionId = 2, RegionId = 2, DurationMonths = 1, Price = 13.99m, Currency = "EUR" },
-                // Extra - EU - 3 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 11, SubscriptionId = 2, RegionId = 2, DurationMonths = 3, Price = 36.99m, Currency = "EUR" },
-                // Extra - EU - 12 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 12, SubscriptionId = 2, RegionId = 2, DurationMonths = 12, Price = 89.99m, Currency = "EUR" },
-                // Premium - US - 1 month
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 13, SubscriptionId = 3, RegionId = 1, DurationMonths = 1, Price = 17.99m, Currency = "USD" },
-                // Premium - US - 3 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 14, SubscriptionId = 3, RegionId = 1, DurationMonths = 3, Price = 49.99m, Currency = "USD" },
-                // Premium - US - 12 months
-                new SubscriptionPlanRegion { SubscriptionPlanRegionId = 15, SubscriptionId = 3, RegionId = 1, DurationMonths = 12, Price = 119.99m, Currency = "USD" }
-            );
-
-            // Seed GameSubscription (games included in subscription plans)
-            modelBuilder.Entity<GameSubscription>().HasData(
-                new GameSubscription { GameId = 1, SubscriptionId = 2 }, // God of War in Extra
-                new GameSubscription { GameId = 1, SubscriptionId = 3 }, // God of War in Premium
-                new GameSubscription { GameId = 2, SubscriptionId = 3 }  // Spider-Man in Premium
-            );
-
-            // Seed Admin
-            modelBuilder.Entity<Admin>().HasData(
-                new Admin { AdminId = 1, AdminEmail = "admin@psstore.com", AdminPassword = "Admin@123", CreatedAt = DateTime.UtcNow, IsDeleted = false }
-            );
-
-            // Seed Test Users
-            modelBuilder.Entity<User>().HasData(
-                new User { UserId = 1, UserName = "john_doe", UserPassword = "Pass@123", Age = 28, UserEmail = "john@example.com", SubscriptionStatus = null, CreatedAt = DateTime.UtcNow, IsDeleted = false },
-                new User { UserId = 2, UserName = "jane_smith", UserPassword = "Pass@456", Age = 25, UserEmail = "jane@example.com", SubscriptionStatus = "Active", CreatedAt = DateTime.UtcNow, IsDeleted = false }
-            );
-
-            // Seed UsersRegion (assign users to regions)
-            modelBuilder.Entity<UsersRegion>().HasData(
-                new UsersRegion { UserRegionId = 1, UserId = 1, RegionId = 1, StartDate = DateTime.UtcNow, IsActive = true },
-                new UsersRegion { UserRegionId = 2, UserId = 2, RegionId = 2, StartDate = DateTime.UtcNow, IsActive = true }
-            );
+            return base.SaveChangesAsync(cancellationToken);
         }
     }
 }

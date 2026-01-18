@@ -21,9 +21,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IGameRepository, GameRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IRegionRepository, RegionRepository>();
+builder.Services.AddScoped<ICountryRepository, CountryRepository>();
+builder.Services.AddScoped<IGameCountryRepository, GameCountryRepository>();
 builder.Services.AddScoped<IUserPurchaseGameRepository, UserPurchaseGameRepository>();
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
-builder.Services.AddScoped<ISubscriptionPlanRegionRepository, SubscriptionPlanRegionRepository>();
+builder.Services.AddScoped<ISubscriptionPlanCountryRepository, SubscriptionPlanCountryRepository>();
 builder.Services.AddScoped<IUserSubscriptionPlanRepository, UserSubscriptionPlanRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
@@ -80,6 +82,14 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Apply migrations and seed data on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate(); // Apply any pending migrations
+    await DbInitializer.InitializeAsync(dbContext); // Seed database if empty
+}
 
 // Use CORS FIRST - before other middleware
 app.UseCors("AllowReactApp");

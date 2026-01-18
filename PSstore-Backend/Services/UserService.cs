@@ -11,23 +11,32 @@ namespace PSstore.Services
         private readonly IJwtService _jwtService;
         private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository, IJwtService jwtService, IConfiguration configuration)
+        private readonly IUserSubscriptionPlanRepository _subscriptionRepository;
+
+        public UserService(IUserRepository userRepository, IJwtService jwtService, IConfiguration configuration, IUserSubscriptionPlanRepository subscriptionRepository)
         {
             _userRepository = userRepository;
             _jwtService = jwtService;
             _configuration = configuration;
+            _subscriptionRepository = subscriptionRepository;
         }
 
-        public async Task<UserDTO?> GetUserByIdAsync(int userId)
+        public async Task<UserDTO?> GetUserByIdAsync(Guid userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
-            return user != null ? MapToUserDTO(user) : null;
+            if (user == null) return null;
+            
+            var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(userId);
+            return MapToUserDTO(user, hasSubscription);
         }
 
         public async Task<UserDTO?> GetUserByEmailAsync(string email)
         {
             var user = await _userRepository.GetByEmailAsync(email);
-            return user != null ? MapToUserDTO(user) : null;
+            if (user == null) return null;
+
+            var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(user.UserId);
+            return MapToUserDTO(user, hasSubscription);
         }
 
         public async Task<UserDTO> CreateUserAsync(CreateUserDTO createUserDTO)
@@ -48,7 +57,8 @@ namespace PSstore.Services
                 UserEmail = createUserDTO.UserEmail,
                 UserPassword = hashedPassword,
                 Age = createUserDTO.Age,
-                SubscriptionStatus = null,
+                CountryId = createUserDTO.CountryId,
+                // SubscriptionStatus is removed
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
@@ -56,30 +66,31 @@ namespace PSstore.Services
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
 
-            return MapToUserDTO(user);
+            return MapToUserDTO(user, false);
         }
 
-        public async Task<UserDTO?> UpdateUserAsync(int userId, UpdateUserDTO updateUserDTO)
+        public async Task<UserDTO?> UpdateUserAsync(Guid userId, UpdateUserDTO updateUserDTO)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return null;
 
-            user.UserName = updateUserDTO.UserName;
-            user.Age = updateUserDTO.Age;
+            if (updateUserDTO.UserName != null) user.UserName = updateUserDTO.UserName;
+            if (updateUserDTO.Age != null) user.Age = updateUserDTO.Age.Value;
 
             _userRepository.Update(user);
             await _userRepository.SaveChangesAsync();
 
-            return MapToUserDTO(user);
+            var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(userId);
+            return MapToUserDTO(user, hasSubscription);
         }
 
-        public async Task<bool> SoftDeleteUserAsync(int userId)
+        public async Task<bool> SoftDeleteUserAsync(Guid userId)
         {
             await _userRepository.SoftDeleteAsync(userId);
             return true;
         }
 
-        public async Task<bool> RestoreUserAsync(int userId)
+        public async Task<bool> RestoreUserAsync(Guid userId)
         {
             return await _userRepository.RestoreAsync(userId);
         }
@@ -95,7 +106,7 @@ namespace PSstore.Services
             }
 
             // Generate JWT token
-            var token = _jwtService.GenerateToken(user.UserId, user.UserEmail, user.UserName, "User");
+            var token = _jwtService.GenerateToken(user.UserId, "User");
             var expirationMinutes = Convert.ToDouble(_configuration["JwtSettings:ExpirationMinutes"]);
 
             return new LoginResponseDTO
@@ -108,7 +119,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword)
+        public async Task<bool> ChangePasswordAsync(Guid userId, string oldPassword, string newPassword)
         {
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return false;
@@ -127,7 +138,7 @@ namespace PSstore.Services
             return true;
         }
 
-        private static UserDTO MapToUserDTO(User user)
+        private static UserDTO MapToUserDTO(User user, bool hasActiveSubscription)
         {
             return new UserDTO
             {
@@ -135,8 +146,9 @@ namespace PSstore.Services
                 UserName = user.UserName,
                 UserEmail = user.UserEmail,
                 Age = user.Age,
-                SubscriptionStatus = !string.IsNullOrEmpty(user.SubscriptionStatus),
-                CreatedAt = user.CreatedAt
+                SubscriptionStatus = hasActiveSubscription,
+                CreatedAt = user.CreatedAt,
+                CountryId = user.CountryId
             };
         }
     }

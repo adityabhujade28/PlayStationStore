@@ -23,7 +23,7 @@ namespace PSstore.Services
             _entitlementService = entitlementService;
         }
 
-        public async Task<PurchaseResponseDTO> PurchaseGameAsync(int userId, CreatePurchaseDTO purchaseDTO)
+        public async Task<PurchaseResponseDTO> PurchaseGameAsync(Guid userId, CreatePurchaseDTO purchaseDTO)
         {
             // Validate user exists
             var user = await _userRepository.GetByIdAsync(userId);
@@ -67,12 +67,23 @@ namespace PSstore.Services
                 };
             }
 
+            // Check if game is accessible via active subscription
+            var gameAccess = await _entitlementService.CanUserAccessGameAsync(userId, purchaseDTO.GameId);
+            if (gameAccess.CanAccess && gameAccess.AccessType == "SUBSCRIPTION")
+            {
+                return new PurchaseResponseDTO
+                {
+                    Success = false,
+                    Message = "This game is already accessible through your subscription. No purchase needed."
+                };
+            }
+
             // Create purchase record
             var purchase = new UserPurchaseGame
             {
                 UserId = userId,
                 GameId = purchaseDTO.GameId,
-                PurchasePrice = game.Price,
+                PurchasePrice = game.BasePrice ?? 0m,
                 PurchaseDate = DateTime.UtcNow
             };
 
@@ -90,7 +101,7 @@ namespace PSstore.Services
             };
         }
 
-        public async Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(int userId)
+        public async Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(Guid userId)
         {
             var purchases = await _purchaseRepository.GetUserPurchasesAsync(userId);
             
@@ -104,12 +115,12 @@ namespace PSstore.Services
             });
         }
 
-        public async Task<bool> HasUserPurchasedGameAsync(int userId, int gameId)
+        public async Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId)
         {
             return await _purchaseRepository.HasUserPurchasedGameAsync(userId, gameId);
         }
 
-        public async Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(int purchaseId)
+        public async Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(Guid purchaseId)
         {
             var purchase = await _purchaseRepository.GetPurchaseDetailsAsync(purchaseId);
             if (purchase == null) return null;

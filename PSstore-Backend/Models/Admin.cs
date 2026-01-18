@@ -6,8 +6,7 @@ namespace PSstore.Models
     public class Admin
     {
         [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int AdminId { get; set; }
+        public Guid AdminId { get; set; }
 
         [Required]
         [MaxLength(255)]

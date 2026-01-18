@@ -311,3 +311,4 @@ D:\PSstore\PSstore-Backend\obj\Debug\net8.0\refint\PSstore.dll
 D:\PSstore\PSstore-Backend\obj\Debug\net8.0\PSstore.pdb
 D:\PSstore\PSstore-Backend\obj\Debug\net8.0\PSstore.genruntimeconfig.cache
 D:\PSstore\PSstore-Backend\obj\Debug\net8.0\ref\PSstore.dll
+D:\PSstore\PSstore-Backend\obj\Debug\net8.0\PSstore.sourcelink.json

@@ -24,11 +24,9 @@ namespace PSstore.Migrations
 
             modelBuilder.Entity("PSstore.Models.Admin", b =>
                 {
-                    b.Property<int>("AdminId")
+                    b.Property<Guid>("AdminId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdminId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AdminEmail")
                         .IsRequired()
@@ -52,25 +50,13 @@ namespace PSstore.Migrations
                     b.HasKey("AdminId");
 
                     b.ToTable("Admins");
-
-                    b.HasData(
-                        new
-                        {
-                            AdminId = 1,
-                            AdminEmail = "admin@psstore.com",
-                            AdminPassword = "Admin@123",
-                            CreatedAt = new DateTime(2026, 1, 15, 9, 52, 32, 242, DateTimeKind.Utc).AddTicks(8943),
-                            IsDeleted = false
-                        });
                 });
 
             modelBuilder.Entity("PSstore.Models.Cart", b =>
                 {
-                    b.Property<int>("CartId")
+                    b.Property<Guid>("CartId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -81,8 +67,8 @@ namespace PSstore.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("CartId");
 
@@ -93,20 +79,18 @@ namespace PSstore.Migrations
 
             modelBuilder.Entity("PSstore.Models.CartItem", b =>
                 {
-                    b.Property<int>("CartItemId")
+                    b.Property<Guid>("CartItemId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CartItemId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("AddedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("CartId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CartId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("GameId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
@@ -128,11 +112,9 @@ namespace PSstore.Migrations
 
             modelBuilder.Entity("PSstore.Models.Category", b =>
                 {
-                    b.Property<int>("CategoryId")
+                    b.Property<Guid>("CategoryId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CategoryName")
                         .IsRequired()
@@ -148,47 +130,60 @@ namespace PSstore.Migrations
                     b.HasKey("CategoryId");
 
                     b.ToTable("Categories");
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            CategoryId = 1,
-                            CategoryName = "Action",
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            CategoryId = 2,
-                            CategoryName = "Adventure",
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            CategoryId = 3,
-                            CategoryName = "RPG",
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            CategoryId = 4,
-                            CategoryName = "Sports",
-                            IsDeleted = false
-                        },
-                        new
-                        {
-                            CategoryId = 5,
-                            CategoryName = "Racing",
-                            IsDeleted = false
-                        });
+            modelBuilder.Entity("PSstore.Models.Country", b =>
+                {
+                    b.Property<Guid>("CountryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("CountryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<Guid>("RegionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("TaxRate")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<string>("Timezone")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("CountryId");
+
+                    b.HasIndex("CountryCode")
+                        .IsUnique();
+
+                    b.HasIndex("RegionId");
+
+                    b.ToTable("Countries");
                 });
 
             modelBuilder.Entity("PSstore.Models.Game", b =>
                 {
-                    b.Property<int>("GameId")
+                    b.Property<Guid>("GameId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GameId"));
+                    b.Property<decimal?>("BasePrice")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
@@ -207,9 +202,6 @@ namespace PSstore.Migrations
                     b.Property<bool>("IsMultiplayer")
                         .HasColumnType("bit");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(10,2)");
-
                     b.Property<string>("PublishedBy")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -217,148 +209,74 @@ namespace PSstore.Migrations
                     b.Property<DateTime?>("ReleaseDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("GameId");
 
                     b.ToTable("Games");
-
-                    b.HasData(
-                        new
-                        {
-                            GameId = 1,
-                            FreeToPlay = false,
-                            GameName = "God of War",
-                            IsDeleted = false,
-                            IsMultiplayer = false,
-                            Price = 49.99m,
-                            PublishedBy = "Sony",
-                            ReleaseDate = new DateTime(2018, 4, 20, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            GameId = 2,
-                            FreeToPlay = false,
-                            GameName = "Spider-Man",
-                            IsDeleted = false,
-                            IsMultiplayer = false,
-                            Price = 59.99m,
-                            PublishedBy = "Sony",
-                            ReleaseDate = new DateTime(2018, 9, 7, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            GameId = 3,
-                            FreeToPlay = true,
-                            GameName = "Fortnite",
-                            IsDeleted = false,
-                            IsMultiplayer = true,
-                            Price = 0m,
-                            PublishedBy = "Epic Games",
-                            ReleaseDate = new DateTime(2017, 7, 25, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        },
-                        new
-                        {
-                            GameId = 4,
-                            FreeToPlay = false,
-                            GameName = "Gran Turismo 7",
-                            IsDeleted = false,
-                            IsMultiplayer = true,
-                            Price = 69.99m,
-                            PublishedBy = "Sony",
-                            ReleaseDate = new DateTime(2022, 3, 4, 0, 0, 0, 0, DateTimeKind.Unspecified)
-                        });
                 });
 
             modelBuilder.Entity("PSstore.Models.GameCategory", b =>
                 {
-                    b.Property<int>("GameId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("GameId", "CategoryId");
 
                     b.HasIndex("CategoryId");
 
                     b.ToTable("GameCategories");
+                });
 
-                    b.HasData(
-                        new
-                        {
-                            GameId = 1,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            GameId = 1,
-                            CategoryId = 2
-                        },
-                        new
-                        {
-                            GameId = 2,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            GameId = 2,
-                            CategoryId = 2
-                        },
-                        new
-                        {
-                            GameId = 3,
-                            CategoryId = 1
-                        },
-                        new
-                        {
-                            GameId = 4,
-                            CategoryId = 5
-                        });
+            modelBuilder.Entity("PSstore.Models.GameCountry", b =>
+                {
+                    b.Property<Guid>("GameCountryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CountryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.HasKey("GameCountryId");
+
+                    b.HasIndex("CountryId");
+
+                    b.HasIndex("GameId", "CountryId")
+                        .IsUnique();
+
+                    b.ToTable("GameCountries");
                 });
 
             modelBuilder.Entity("PSstore.Models.GameSubscription", b =>
                 {
-                    b.Property<int>("GameId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("SubscriptionId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("GameId", "SubscriptionId");
 
                     b.HasIndex("SubscriptionId");
 
                     b.ToTable("GameSubscriptions");
-
-                    b.HasData(
-                        new
-                        {
-                            GameId = 1,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            GameId = 1,
-                            SubscriptionId = 3
-                        },
-                        new
-                        {
-                            GameId = 2,
-                            SubscriptionId = 3
-                        });
                 });
 
             modelBuilder.Entity("PSstore.Models.Region", b =>
                 {
-                    b.Property<int>("RegionId")
+                    b.Property<Guid>("RegionId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RegionId"));
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RegionCode")
                         .IsRequired()
@@ -370,99 +288,41 @@ namespace PSstore.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("RegionTimezone")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("RegionId");
 
                     b.HasIndex("RegionCode")
                         .IsUnique();
 
                     b.ToTable("Regions");
-
-                    b.HasData(
-                        new
-                        {
-                            RegionId = 1,
-                            Currency = "USD",
-                            RegionCode = "US",
-                            RegionName = "United States",
-                            RegionTimezone = "America/New_York"
-                        },
-                        new
-                        {
-                            RegionId = 2,
-                            Currency = "EUR",
-                            RegionCode = "EU",
-                            RegionName = "Europe",
-                            RegionTimezone = "Europe/London"
-                        },
-                        new
-                        {
-                            RegionId = 3,
-                            Currency = "JPY",
-                            RegionCode = "JP",
-                            RegionName = "Japan",
-                            RegionTimezone = "Asia/Tokyo"
-                        },
-                        new
-                        {
-                            RegionId = 4,
-                            Currency = "INR",
-                            RegionCode = "IN",
-                            RegionName = "India",
-                            RegionTimezone = "Asia/Kolkata"
-                        });
                 });
 
             modelBuilder.Entity("PSstore.Models.SubscriptionPlan", b =>
                 {
-                    b.Property<int>("SubscriptionId")
+                    b.Property<Guid>("SubscriptionId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubscriptionId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("SubscriptionType")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("SubscriptionId");
 
                     b.ToTable("SubscriptionPlans");
-
-                    b.HasData(
-                        new
-                        {
-                            SubscriptionId = 1,
-                            SubscriptionType = "PlayStation Plus Essential"
-                        },
-                        new
-                        {
-                            SubscriptionId = 2,
-                            SubscriptionType = "PlayStation Plus Extra"
-                        },
-                        new
-                        {
-                            SubscriptionId = 3,
-                            SubscriptionType = "PlayStation Plus Premium"
-                        });
                 });
 
-            modelBuilder.Entity("PSstore.Models.SubscriptionPlanRegion", b =>
+            modelBuilder.Entity("PSstore.Models.SubscriptionPlanCountry", b =>
                 {
-                    b.Property<int>("SubscriptionPlanRegionId")
+                    b.Property<Guid>("SubscriptionPlanCountryId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubscriptionPlanRegionId"));
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                    b.Property<Guid>("CountryId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("DurationMonths")
                         .HasColumnType("int");
@@ -470,169 +330,30 @@ namespace PSstore.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("SubscriptionId")
-                        .HasColumnType("int");
+                    b.HasKey("SubscriptionPlanCountryId");
 
-                    b.HasKey("SubscriptionPlanRegionId");
+                    b.HasIndex("CountryId");
 
-                    b.HasIndex("RegionId");
-
-                    b.HasIndex("SubscriptionId", "RegionId", "DurationMonths")
+                    b.HasIndex("SubscriptionId", "CountryId", "DurationMonths")
                         .IsUnique();
 
-                    b.ToTable("SubscriptionPlanRegions");
-
-                    b.HasData(
-                        new
-                        {
-                            SubscriptionPlanRegionId = 1,
-                            Currency = "USD",
-                            DurationMonths = 1,
-                            Price = 9.99m,
-                            RegionId = 1,
-                            SubscriptionId = 1
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 2,
-                            Currency = "USD",
-                            DurationMonths = 3,
-                            Price = 24.99m,
-                            RegionId = 1,
-                            SubscriptionId = 1
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 3,
-                            Currency = "USD",
-                            DurationMonths = 12,
-                            Price = 59.99m,
-                            RegionId = 1,
-                            SubscriptionId = 1
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 4,
-                            Currency = "EUR",
-                            DurationMonths = 1,
-                            Price = 8.99m,
-                            RegionId = 2,
-                            SubscriptionId = 1
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 5,
-                            Currency = "EUR",
-                            DurationMonths = 3,
-                            Price = 22.99m,
-                            RegionId = 2,
-                            SubscriptionId = 1
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 6,
-                            Currency = "EUR",
-                            DurationMonths = 12,
-                            Price = 54.99m,
-                            RegionId = 2,
-                            SubscriptionId = 1
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 7,
-                            Currency = "USD",
-                            DurationMonths = 1,
-                            Price = 14.99m,
-                            RegionId = 1,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 8,
-                            Currency = "USD",
-                            DurationMonths = 3,
-                            Price = 39.99m,
-                            RegionId = 1,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 9,
-                            Currency = "USD",
-                            DurationMonths = 12,
-                            Price = 99.99m,
-                            RegionId = 1,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 10,
-                            Currency = "EUR",
-                            DurationMonths = 1,
-                            Price = 13.99m,
-                            RegionId = 2,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 11,
-                            Currency = "EUR",
-                            DurationMonths = 3,
-                            Price = 36.99m,
-                            RegionId = 2,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 12,
-                            Currency = "EUR",
-                            DurationMonths = 12,
-                            Price = 89.99m,
-                            RegionId = 2,
-                            SubscriptionId = 2
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 13,
-                            Currency = "USD",
-                            DurationMonths = 1,
-                            Price = 17.99m,
-                            RegionId = 1,
-                            SubscriptionId = 3
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 14,
-                            Currency = "USD",
-                            DurationMonths = 3,
-                            Price = 49.99m,
-                            RegionId = 1,
-                            SubscriptionId = 3
-                        },
-                        new
-                        {
-                            SubscriptionPlanRegionId = 15,
-                            Currency = "USD",
-                            DurationMonths = 12,
-                            Price = 119.99m,
-                            RegionId = 1,
-                            SubscriptionId = 3
-                        });
+                    b.ToTable("SubscriptionPlanCountries");
                 });
 
             modelBuilder.Entity("PSstore.Models.User", b =>
                 {
-                    b.Property<int>("UserId")
+                    b.Property<Guid>("UserId")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Age")
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
-
-                    b.Property<int?>("Age")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("CountryId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -643,9 +364,8 @@ namespace PSstore.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("SubscriptionStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserEmail")
                         .IsRequired()
@@ -664,45 +384,22 @@ namespace PSstore.Migrations
 
                     b.HasKey("UserId");
 
+                    b.HasIndex("CountryId");
+
                     b.HasIndex("UserEmail")
                         .IsUnique();
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            UserId = 1,
-                            Age = 28,
-                            CreatedAt = new DateTime(2026, 1, 15, 9, 52, 32, 242, DateTimeKind.Utc).AddTicks(8966),
-                            IsDeleted = false,
-                            UserEmail = "john@example.com",
-                            UserName = "john_doe",
-                            UserPassword = "Pass@123"
-                        },
-                        new
-                        {
-                            UserId = 2,
-                            Age = 25,
-                            CreatedAt = new DateTime(2026, 1, 15, 9, 52, 32, 242, DateTimeKind.Utc).AddTicks(8969),
-                            IsDeleted = false,
-                            SubscriptionStatus = "Active",
-                            UserEmail = "jane@example.com",
-                            UserName = "jane_smith",
-                            UserPassword = "Pass@456"
-                        });
                 });
 
             modelBuilder.Entity("PSstore.Models.UserPurchaseGame", b =>
                 {
-                    b.Property<int>("PurchaseId")
+                    b.Property<Guid>("PurchaseId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseId"));
-
-                    b.Property<int>("GameId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("PurchaseDate")
                         .HasColumnType("datetime2");
@@ -710,8 +407,8 @@ namespace PSstore.Migrations
                     b.Property<decimal>("PurchasePrice")
                         .HasColumnType("decimal(10,2)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("PurchaseId");
 
@@ -724,11 +421,9 @@ namespace PSstore.Migrations
 
             modelBuilder.Entity("PSstore.Models.UserSubscriptionPlan", b =>
                 {
-                    b.Property<int>("UserSubscriptionId")
+                    b.Property<Guid>("UserSubscriptionId")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserSubscriptionId"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("PlanEndDate")
                         .HasColumnType("datetime2");
@@ -736,69 +431,19 @@ namespace PSstore.Migrations
                     b.Property<DateTime>("PlanStartDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("SubscriptionPlanRegionId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SubscriptionPlanCountryId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("UserSubscriptionId");
 
-                    b.HasIndex("SubscriptionPlanRegionId");
+                    b.HasIndex("SubscriptionPlanCountryId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("UserSubscriptionPlans");
-                });
-
-            modelBuilder.Entity("PSstore.Models.UsersRegion", b =>
-                {
-                    b.Property<int>("UserRegionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserRegionId"));
-
-                    b.Property<DateTime?>("EndDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("RegionId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserRegionId");
-
-                    b.HasIndex("RegionId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UsersRegions");
-
-                    b.HasData(
-                        new
-                        {
-                            UserRegionId = 1,
-                            IsActive = true,
-                            RegionId = 1,
-                            StartDate = new DateTime(2026, 1, 15, 9, 52, 32, 242, DateTimeKind.Utc).AddTicks(8989),
-                            UserId = 1
-                        },
-                        new
-                        {
-                            UserRegionId = 2,
-                            IsActive = true,
-                            RegionId = 2,
-                            StartDate = new DateTime(2026, 1, 15, 9, 52, 32, 242, DateTimeKind.Utc).AddTicks(8991),
-                            UserId = 2
-                        });
                 });
 
             modelBuilder.Entity("PSstore.Models.Cart", b =>
@@ -831,6 +476,17 @@ namespace PSstore.Migrations
                     b.Navigation("Game");
                 });
 
+            modelBuilder.Entity("PSstore.Models.Country", b =>
+                {
+                    b.HasOne("PSstore.Models.Region", "Region")
+                        .WithMany("Countries")
+                        .HasForeignKey("RegionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Region");
+                });
+
             modelBuilder.Entity("PSstore.Models.GameCategory", b =>
                 {
                     b.HasOne("PSstore.Models.Category", "Category")
@@ -846,6 +502,25 @@ namespace PSstore.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("Game");
+                });
+
+            modelBuilder.Entity("PSstore.Models.GameCountry", b =>
+                {
+                    b.HasOne("PSstore.Models.Country", "Country")
+                        .WithMany("GameCountries")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PSstore.Models.Game", "Game")
+                        .WithMany("GameCountries")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Country");
 
                     b.Navigation("Game");
                 });
@@ -869,23 +544,33 @@ namespace PSstore.Migrations
                     b.Navigation("SubscriptionPlan");
                 });
 
-            modelBuilder.Entity("PSstore.Models.SubscriptionPlanRegion", b =>
+            modelBuilder.Entity("PSstore.Models.SubscriptionPlanCountry", b =>
                 {
-                    b.HasOne("PSstore.Models.Region", "Region")
-                        .WithMany("SubscriptionPlanRegions")
-                        .HasForeignKey("RegionId")
+                    b.HasOne("PSstore.Models.Country", "Country")
+                        .WithMany("SubscriptionPlanCountries")
+                        .HasForeignKey("CountryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PSstore.Models.SubscriptionPlan", "SubscriptionPlan")
-                        .WithMany("SubscriptionPlanRegions")
+                        .WithMany("SubscriptionPlanCountries")
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Region");
+                    b.Navigation("Country");
 
                     b.Navigation("SubscriptionPlan");
+                });
+
+            modelBuilder.Entity("PSstore.Models.User", b =>
+                {
+                    b.HasOne("PSstore.Models.Country", "Country")
+                        .WithMany("Users")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Country");
                 });
 
             modelBuilder.Entity("PSstore.Models.UserPurchaseGame", b =>
@@ -909,9 +594,9 @@ namespace PSstore.Migrations
 
             modelBuilder.Entity("PSstore.Models.UserSubscriptionPlan", b =>
                 {
-                    b.HasOne("PSstore.Models.SubscriptionPlanRegion", "SubscriptionPlanRegion")
+                    b.HasOne("PSstore.Models.SubscriptionPlanCountry", "SubscriptionPlanCountry")
                         .WithMany("UserSubscriptionPlans")
-                        .HasForeignKey("SubscriptionPlanRegionId")
+                        .HasForeignKey("SubscriptionPlanCountryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -921,26 +606,7 @@ namespace PSstore.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("SubscriptionPlanRegion");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("PSstore.Models.UsersRegion", b =>
-                {
-                    b.HasOne("PSstore.Models.Region", "Region")
-                        .WithMany("UsersRegions")
-                        .HasForeignKey("RegionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PSstore.Models.User", "User")
-                        .WithMany("UsersRegions")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Region");
+                    b.Navigation("SubscriptionPlanCountry");
 
                     b.Navigation("User");
                 });
@@ -955,11 +621,22 @@ namespace PSstore.Migrations
                     b.Navigation("GameCategories");
                 });
 
+            modelBuilder.Entity("PSstore.Models.Country", b =>
+                {
+                    b.Navigation("GameCountries");
+
+                    b.Navigation("SubscriptionPlanCountries");
+
+                    b.Navigation("Users");
+                });
+
             modelBuilder.Entity("PSstore.Models.Game", b =>
                 {
                     b.Navigation("CartItems");
 
                     b.Navigation("GameCategories");
+
+                    b.Navigation("GameCountries");
 
                     b.Navigation("GameSubscriptions");
 
@@ -968,19 +645,17 @@ namespace PSstore.Migrations
 
             modelBuilder.Entity("PSstore.Models.Region", b =>
                 {
-                    b.Navigation("SubscriptionPlanRegions");
-
-                    b.Navigation("UsersRegions");
+                    b.Navigation("Countries");
                 });
 
             modelBuilder.Entity("PSstore.Models.SubscriptionPlan", b =>
                 {
                     b.Navigation("GameSubscriptions");
 
-                    b.Navigation("SubscriptionPlanRegions");
+                    b.Navigation("SubscriptionPlanCountries");
                 });
 
-            modelBuilder.Entity("PSstore.Models.SubscriptionPlanRegion", b =>
+            modelBuilder.Entity("PSstore.Models.SubscriptionPlanCountry", b =>
                 {
                     b.Navigation("UserSubscriptionPlans");
                 });
@@ -992,8 +667,6 @@ namespace PSstore.Migrations
                     b.Navigation("UserPurchasedGames");
 
                     b.Navigation("UserSubscriptionPlans");
-
-                    b.Navigation("UsersRegions");
                 });
 #pragma warning restore 612, 618
         }

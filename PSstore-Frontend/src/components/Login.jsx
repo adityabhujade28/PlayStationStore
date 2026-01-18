@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styles from './Login.module.css';
 
-function Login({ onSwitchToSignup }) {
+function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,11 +17,11 @@ function Login({ onSwitchToSignup }) {
     setLoading(true);
 
     const result = await login(email, password);
-    
+
     if (!result.success) {
       setError(result.error || 'Invalid email or password');
     }
-    
+
     setLoading(false);
   };
 
@@ -27,9 +29,9 @@ function Login({ onSwitchToSignup }) {
     <div className={styles.loginContainer}>
       <div className={styles.loginCard}>
         <h2 className={styles.loginTitle}>Login to PSstore</h2>
-        
+
         {error && <div className={styles.errorMessage}>{error}</div>}
-        
+
         <form onSubmit={handleSubmit} className={styles.loginForm}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Email</label>
@@ -40,6 +42,7 @@ function Login({ onSwitchToSignup }) {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
+              autoComplete="username"
             />
           </div>
 
@@ -52,11 +55,12 @@ function Login({ onSwitchToSignup }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
+              autoComplete="current-password"
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className={styles.loginButton}
             disabled={loading}
           >
@@ -65,7 +69,7 @@ function Login({ onSwitchToSignup }) {
         </form>
 
         <div className={styles.signupLink}>
-          Don't have an account? <a onClick={onSwitchToSignup}>Sign up</a>
+          Don't have an account? <a onClick={() => navigate('/signup')}>Sign up</a>
         </div>
       </div>
     </div>

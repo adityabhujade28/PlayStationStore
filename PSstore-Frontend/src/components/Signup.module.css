@@ -57,6 +57,12 @@
   border-color: #667eea;
 }
 
+.formHint {
+  color: #888;
+  font-size: 12px;
+  font-style: italic;
+}
+
 .signupButton {
   padding: 14px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

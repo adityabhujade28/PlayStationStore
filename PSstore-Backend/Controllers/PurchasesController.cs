@@ -16,7 +16,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PurchaseResponseDTO>> PurchaseGame([FromBody] CreatePurchaseDTO purchaseDTO, [FromQuery] int userId)
+        public async Task<ActionResult<PurchaseResponseDTO>> PurchaseGame([FromBody] CreatePurchaseDTO purchaseDTO, [FromQuery] Guid userId)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -30,14 +30,14 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        public async Task<ActionResult<IEnumerable<PurchaseHistoryDTO>>> GetUserPurchaseHistory(int userId)
+        public async Task<ActionResult<IEnumerable<PurchaseHistoryDTO>>> GetUserPurchaseHistory(Guid userId)
         {
             var purchases = await _purchaseService.GetUserPurchaseHistoryAsync(userId);
             return Ok(purchases);
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<PurchaseResponseDTO>> GetPurchaseDetails(int id)
+        public async Task<ActionResult<PurchaseResponseDTO>> GetPurchaseDetails(Guid id)
         {
             var purchase = await _purchaseService.GetPurchaseDetailsAsync(id);
             if (purchase == null)
@@ -47,7 +47,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("check")]
-        public async Task<ActionResult<bool>> HasUserPurchasedGame([FromQuery] int userId, [FromQuery] int gameId)
+        public async Task<ActionResult<bool>> HasUserPurchasedGame([FromQuery] Guid userId, [FromQuery] Guid gameId)
         {
             var result = await _purchaseService.HasUserPurchasedGameAsync(userId, gameId);
             return Ok(new { purchased = result });

@@ -8,22 +8,22 @@ namespace PSstore.Services
     {
         private readonly IUserSubscriptionPlanRepository _userSubscriptionRepository;
         private readonly ISubscriptionPlanRepository _subscriptionPlanRepository;
-        private readonly ISubscriptionPlanRegionRepository _planRegionRepository;
+        private readonly ISubscriptionPlanCountryRepository _planCountryRepository;
         private readonly IUserRepository _userRepository;
 
         public SubscriptionService(
             IUserSubscriptionPlanRepository userSubscriptionRepository,
             ISubscriptionPlanRepository subscriptionPlanRepository,
-            ISubscriptionPlanRegionRepository planRegionRepository,
+            ISubscriptionPlanCountryRepository planCountryRepository,
             IUserRepository userRepository)
         {
             _userSubscriptionRepository = userSubscriptionRepository;
             _subscriptionPlanRepository = subscriptionPlanRepository;
-            _planRegionRepository = planRegionRepository;
+            _planCountryRepository = planCountryRepository;
             _userRepository = userRepository;
         }
 
-        public async Task<SubscriptionResponseDTO> SubscribeAsync(int userId, CreateSubscriptionDTO subscriptionDTO)
+        public async Task<SubscriptionResponseDTO> SubscribeAsync(Guid userId, CreateSubscriptionDTO subscriptionDTO)
         {
             // Validate user exists
             var user = await _userRepository.GetByIdAsync(userId);
@@ -47,9 +47,9 @@ namespace PSstore.Services
                 };
             }
 
-            // Validate subscription plan region exists
-            var planRegion = await _planRegionRepository.GetByIdAsync(subscriptionDTO.SubscriptionPlanRegionId);
-            if (planRegion == null)
+            // Validate subscription plan country exists
+            var planCountry = await _planCountryRepository.GetByIdAsync(subscriptionDTO.SubscriptionPlanCountryId);
+            if (planCountry == null)
             {
                 return new SubscriptionResponseDTO
                 {
@@ -60,22 +60,22 @@ namespace PSstore.Services
 
             // Create subscription record
             var startDate = DateTime.UtcNow;
-            var endDate = startDate.AddMonths(planRegion.DurationMonths);
+            var endDate = startDate.AddMonths(planCountry.DurationMonths);
 
             var userSubscription = new UserSubscriptionPlan
             {
                 UserId = userId,
-                SubscriptionPlanRegionId = subscriptionDTO.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = subscriptionDTO.SubscriptionPlanCountryId,
                 PlanStartDate = startDate,
                 PlanEndDate = endDate
             };
 
             await _userSubscriptionRepository.AddAsync(userSubscription);
 
-            // Update user subscription status
-            user.SubscriptionStatus = "Active";
-            _userRepository.Update(user);
 
+
+            // Update user subscription status - REMOVED (Calc dynamically)
+            
             await _userSubscriptionRepository.SaveChangesAsync();
 
             return new SubscriptionResponseDTO
@@ -85,12 +85,12 @@ namespace PSstore.Services
                 UserSubscriptionId = userSubscription.UserSubscriptionId,
                 PlanStartDate = userSubscription.PlanStartDate,
                 PlanEndDate = userSubscription.PlanEndDate,
-                DurationMonths = planRegion.DurationMonths,
-                Price = planRegion.Price
+                DurationMonths = planCountry.DurationMonths,
+                Price = planCountry.Price
             };
         }
 
-        public async Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(int userId)
+        public async Task<UserSubscriptionDTO?> GetActiveSubscriptionAsync(Guid userId)
         {
             var subscription = await _userSubscriptionRepository.GetActiveSubscriptionAsync(userId);
             if (subscription == null) return null;
@@ -99,14 +99,15 @@ namespace PSstore.Services
             {
                 UserSubscriptionId = subscription.UserSubscriptionId,
                 UserId = subscription.UserId,
-                SubscriptionPlanRegionId = subscription.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = subscription.SubscriptionPlanCountryId,
                 PlanStartDate = subscription.PlanStartDate,
                 PlanEndDate = subscription.PlanEndDate,
-                IsActive = subscription.PlanEndDate >= DateTime.UtcNow
+                IsActive = subscription.PlanEndDate >= DateTime.UtcNow,
+                SubscriptionName = subscription.SubscriptionPlanCountry?.SubscriptionPlan?.SubscriptionType ?? "Unknown"
             };
         }
 
-        public async Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(int userId)
+        public async Task<IEnumerable<UserSubscriptionDTO>> GetUserSubscriptionHistoryAsync(Guid userId)
         {
             var subscriptions = await _userSubscriptionRepository.GetUserSubscriptionsAsync(userId);
             
@@ -114,7 +115,7 @@ namespace PSstore.Services
             {
                 UserSubscriptionId = s.UserSubscriptionId,
                 UserId = s.UserId,
-                SubscriptionPlanRegionId = s.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = s.SubscriptionPlanCountryId,
                 PlanStartDate = s.PlanStartDate,
                 PlanEndDate = s.PlanEndDate,
                 IsActive = s.PlanEndDate >= DateTime.UtcNow
@@ -123,32 +124,32 @@ namespace PSstore.Services
 
         public async Task<IEnumerable<SubscriptionPlanDTO>> GetAllSubscriptionPlansAsync()
         {
-            var plans = await _subscriptionPlanRepository.GetAllAsync();
+            var plans = await _subscriptionPlanRepository.GetAllPlansWithDetailsAsync();
             
             return plans.Select(p => new SubscriptionPlanDTO
             {
                 SubscriptionId = p.SubscriptionId,
-                SubscriptionName = p.SubscriptionType
+                SubscriptionName = p.SubscriptionType,
+                IncludedGames = p.GameSubscriptions?.Select(gs => gs.GameId.ToString()).ToList() ?? new List<string>()
             });
         }
 
-        public async Task<IEnumerable<SubscriptionPlanRegionDTO>> GetSubscriptionPlanOptionsAsync(int subscriptionId, int regionId)
+        public async Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(Guid subscriptionId, Guid countryId)
         {
-            var options = await _planRegionRepository.GetPlansByRegionAsync(regionId);
+            var options = await _planCountryRepository.GetPlansByCountryAsync(countryId);
             var filtered = options.Where(o => o.SubscriptionId == subscriptionId);
             
-            return filtered.Select(o => new SubscriptionPlanRegionDTO
+            return filtered.Select(o => new SubscriptionPlanCountryDTO
             {
-                SubscriptionPlanRegionId = o.SubscriptionPlanRegionId,
+                SubscriptionPlanCountryId = o.SubscriptionPlanCountryId,
                 SubscriptionId = o.SubscriptionId,
-                RegionId = o.RegionId,
+                CountryId = o.CountryId,
                 DurationMonths = o.DurationMonths,
-                Price = o.Price,
-                Currency = o.Currency
+                Price = o.Price
             });
         }
 
-        public async Task<bool> CancelSubscriptionAsync(int userId)
+        public async Task<bool> CancelSubscriptionAsync(Guid userId)
         {
             var activeSubscription = await _userSubscriptionRepository.GetActiveSubscriptionAsync(userId);
             if (activeSubscription == null) return false;
@@ -157,13 +158,7 @@ namespace PSstore.Services
             activeSubscription.PlanEndDate = DateTime.UtcNow;
             _userSubscriptionRepository.Update(activeSubscription);
 
-            // Update user subscription status
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user != null)
-            {
-                user.SubscriptionStatus = null;
-                _userRepository.Update(user);
-            }
+            // Update user subscription status - REMOVED (Calc dynamically)
 
             await _userSubscriptionRepository.SaveChangesAsync();
             return true;
