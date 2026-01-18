@@ -19,7 +19,11 @@ function GameCard({ game, currency = 'INR' }) {
         <h3 className={styles.title}>{game.gameName}</h3>
         <p className={styles.publisher}>{game.publishedBy}</p>
         <div className={styles.footer}>
-          {game.freeToPlay ? (
+          {game.canAccess ? (
+            <span className={styles.playText}>
+              {game.accessType === 'SUBSCRIPTION' ? 'Included' : 'Owned'}
+            </span>
+          ) : game.freeToPlay ? (
             <span className={styles.freeText}>Free to Play</span>
           ) : (
             <span className={styles.price}>

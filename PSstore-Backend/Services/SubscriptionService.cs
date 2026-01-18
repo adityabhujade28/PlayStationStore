@@ -72,10 +72,10 @@ namespace PSstore.Services
 
             await _userSubscriptionRepository.AddAsync(userSubscription);
 
-            // Update user subscription status
-            user.SubscriptionStatus = "Active";
-            _userRepository.Update(user);
 
+
+            // Update user subscription status - REMOVED (Calc dynamically)
+            
             await _userSubscriptionRepository.SaveChangesAsync();
 
             return new SubscriptionResponseDTO
@@ -158,13 +158,7 @@ namespace PSstore.Services
             activeSubscription.PlanEndDate = DateTime.UtcNow;
             _userSubscriptionRepository.Update(activeSubscription);
 
-            // Update user subscription status
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user != null)
-            {
-                user.SubscriptionStatus = null;
-                _userRepository.Update(user);
-            }
+            // Update user subscription status - REMOVED (Calc dynamically)
 
             await _userSubscriptionRepository.SaveChangesAsync();
             return true;

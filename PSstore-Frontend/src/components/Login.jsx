@@ -42,7 +42,7 @@ function Login() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
-              autocomplete="username"
+              autoComplete="username"
             />
           </div>
 
@@ -55,7 +55,7 @@ function Login() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
               required
-              autocomplete="current-password"
+              autoComplete="current-password"
             />
           </div>
 

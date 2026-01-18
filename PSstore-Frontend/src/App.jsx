@@ -17,10 +17,10 @@ function ProtectedRoute({ children }) {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         fontSize: '18px',
         color: '#667eea'
@@ -38,10 +38,10 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         fontSize: '18px',
         color: '#667eea'
@@ -53,69 +53,73 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated() ? <Navigate to="/" /> : <Login />} 
+      <Route
+        path="/login"
+        element={isAuthenticated() ? <Navigate to="/store" /> : <Login />}
       />
-      <Route 
-        path="/signup" 
-        element={isAuthenticated() ? <Navigate to="/" /> : <Signup />} 
+      <Route
+        path="/signup"
+        element={isAuthenticated() ? <Navigate to="/store" /> : <Signup />}
       />
-      <Route 
-        path="/" 
+      <Route
+        path="/"
+        element={<Navigate to={isAuthenticated() ? "/store" : "/login"} />}
+      />
+      <Route
+        path="/store"
         element={
           <ProtectedRoute>
             <GamesStore />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/game/:gameId" 
+      <Route
+        path="/game/:gameId"
         element={
           <ProtectedRoute>
             <GameDetails />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/cart" 
+      <Route
+        path="/cart"
         element={
           <ProtectedRoute>
             <Cart />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/checkout-success" 
+      <Route
+        path="/checkout-success"
         element={
           <ProtectedRoute>
             <CheckoutSuccess />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/library" 
+      <Route
+        path="/library"
         element={
           <ProtectedRoute>
             <Library />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/subscriptions" 
+      <Route
+        path="/subscriptions"
         element={
           <ProtectedRoute>
             <Subscriptions />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/profile" 
+      <Route
+        path="/profile"
         element={
           <ProtectedRoute>
             <Profile />
           </ProtectedRoute>
-        } 
+        }
       />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

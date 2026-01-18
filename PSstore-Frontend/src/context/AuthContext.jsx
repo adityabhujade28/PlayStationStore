@@ -9,11 +9,31 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if token exists on mount
+    // Check if token exists on mount and validate it
     const storedToken = localStorage.getItem('token');
 
     if (storedToken) {
-      setToken(storedToken);
+      try {
+        const decoded = jwtDecode(storedToken);
+        const currentTime = Date.now() / 1000;
+
+        if (decoded.exp < currentTime) {
+          // Token expired
+          console.log('Token expired, logging out');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+        } else {
+          // Token valid
+          setToken(storedToken);
+        }
+      } catch (error) {
+        // Invalid token format
+        console.error('Invalid token found, clearing storage', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+      }
     }
     setLoading(false);
   }, []);

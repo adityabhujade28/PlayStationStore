@@ -16,18 +16,17 @@ namespace PSstore.Models
         [MaxLength(255)]
         public string UserPassword { get; set; } = string.Empty;
 
+        [Required]
         [Range(0, 150)]
-        public int? Age { get; set; }
+        public int Age { get; set; }
 
         [Required]
         [MaxLength(255)]
         [EmailAddress]
         public string UserEmail { get; set; } = string.Empty;
 
-        [MaxLength(50)]
-        public string? SubscriptionStatus { get; set; }
-
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }

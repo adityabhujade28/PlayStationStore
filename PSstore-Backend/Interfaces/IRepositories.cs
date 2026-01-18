@@ -19,6 +19,8 @@ namespace PSstore.Interfaces
         Task<Game?> GetGameWithSubscriptionsAsync(Guid gameId);
         Task<IEnumerable<Game>> GetGamesByCategoryAsync(Guid categoryId);
         Task<IEnumerable<Game>> GetFreeGamesAsync();
+        Task<IEnumerable<Guid>> GetFreeGameIdsAsync();
+        Task<IEnumerable<Game>> GetGamesByIdsAsync(IEnumerable<Guid> gameIds);
         Task<IEnumerable<Game>> SearchGamesAsync(string searchTerm);
         Task SoftDeleteAsync(Guid gameId);
         Task<bool> RestoreAsync(Guid gameId);
@@ -55,6 +57,7 @@ namespace PSstore.Interfaces
         Task<IEnumerable<UserPurchaseGame>> GetUserPurchasesAsync(Guid userId);
         Task<UserPurchaseGame?> GetPurchaseDetailsAsync(Guid purchaseId);
         Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
+        Task<IEnumerable<Guid>> GetPurchasedGameIdsAsync(Guid userId);
     }
 
     public interface ISubscriptionPlanRepository : IRepository<SubscriptionPlan>

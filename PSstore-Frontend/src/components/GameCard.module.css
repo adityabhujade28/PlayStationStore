@@ -75,6 +75,15 @@
   color: #10a37f;
 }
 
+.playText {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0078d4;
+  background: rgba(0, 120, 212, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
 .freeText {
   font-size: 16px;
   font-weight: 600;

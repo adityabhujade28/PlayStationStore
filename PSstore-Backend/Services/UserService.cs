@@ -11,23 +11,32 @@ namespace PSstore.Services
         private readonly IJwtService _jwtService;
         private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository, IJwtService jwtService, IConfiguration configuration)
+        private readonly IUserSubscriptionPlanRepository _subscriptionRepository;
+
+        public UserService(IUserRepository userRepository, IJwtService jwtService, IConfiguration configuration, IUserSubscriptionPlanRepository subscriptionRepository)
         {
             _userRepository = userRepository;
             _jwtService = jwtService;
             _configuration = configuration;
+            _subscriptionRepository = subscriptionRepository;
         }
 
         public async Task<UserDTO?> GetUserByIdAsync(Guid userId)
         {
             var user = await _userRepository.GetByIdAsync(userId);
-            return user != null ? MapToUserDTO(user) : null;
+            if (user == null) return null;
+            
+            var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(userId);
+            return MapToUserDTO(user, hasSubscription);
         }
 
         public async Task<UserDTO?> GetUserByEmailAsync(string email)
         {
             var user = await _userRepository.GetByEmailAsync(email);
-            return user != null ? MapToUserDTO(user) : null;
+            if (user == null) return null;
+
+            var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(user.UserId);
+            return MapToUserDTO(user, hasSubscription);
         }
 
         public async Task<UserDTO> CreateUserAsync(CreateUserDTO createUserDTO)
@@ -49,7 +58,7 @@ namespace PSstore.Services
                 UserPassword = hashedPassword,
                 Age = createUserDTO.Age,
                 CountryId = createUserDTO.CountryId,
-                SubscriptionStatus = null,
+                // SubscriptionStatus is removed
                 CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
@@ -57,7 +66,7 @@ namespace PSstore.Services
             await _userRepository.AddAsync(user);
             await _userRepository.SaveChangesAsync();
 
-            return MapToUserDTO(user);
+            return MapToUserDTO(user, false);
         }
 
         public async Task<UserDTO?> UpdateUserAsync(Guid userId, UpdateUserDTO updateUserDTO)
@@ -65,13 +74,14 @@ namespace PSstore.Services
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null) return null;
 
-            user.UserName = updateUserDTO.UserName;
-            user.Age = updateUserDTO.Age;
+            if (updateUserDTO.UserName != null) user.UserName = updateUserDTO.UserName;
+            if (updateUserDTO.Age != null) user.Age = updateUserDTO.Age.Value;
 
             _userRepository.Update(user);
             await _userRepository.SaveChangesAsync();
 
-            return MapToUserDTO(user);
+            var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(userId);
+            return MapToUserDTO(user, hasSubscription);
         }
 
         public async Task<bool> SoftDeleteUserAsync(Guid userId)
@@ -128,7 +138,7 @@ namespace PSstore.Services
             return true;
         }
 
-        private static UserDTO MapToUserDTO(User user)
+        private static UserDTO MapToUserDTO(User user, bool hasActiveSubscription)
         {
             return new UserDTO
             {
@@ -136,7 +146,7 @@ namespace PSstore.Services
                 UserName = user.UserName,
                 UserEmail = user.UserEmail,
                 Age = user.Age,
-                SubscriptionStatus = !string.IsNullOrEmpty(user.SubscriptionStatus),
+                SubscriptionStatus = hasActiveSubscription,
                 CreatedAt = user.CreatedAt,
                 CountryId = user.CountryId
             };

@@ -34,11 +34,11 @@ function Navbar() {
 
   return (
     <nav className={styles.navbar}>
-      <div className={styles.logo} onClick={() => navigate('/')}>
+      <div className={styles.logo} onClick={() => navigate('/store')}>
         🎮 PSstore
       </div>
       <div className={styles.navLinks}>
-        <button className={styles.navLink} onClick={() => navigate('/')}>
+        <button className={styles.navLink} onClick={() => navigate('/store')}>
           Store
         </button>
         <button className={styles.navLink} onClick={() => navigate('/library')}>

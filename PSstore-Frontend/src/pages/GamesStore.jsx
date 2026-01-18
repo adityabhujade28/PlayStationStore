@@ -41,6 +41,21 @@ function GamesStore() {
     }
   };
 
+  const fetchUserLibrary = async (userId) => {
+    if (!userId) return new Set();
+    try {
+      const response = await apiClient.get(`/users/${userId}/library`);
+      if (response.ok) {
+        const data = await response.json();
+        // Return set of game IDs that user can access
+        return new Set(data.accessibleGames.map(g => g.gameId));
+      }
+    } catch (err) {
+      console.error('Failed to fetch user library:', err);
+    }
+    return new Set();
+  };
+
   const fetchUserCurrency = async () => {
     try {
       const decoded = getDecodedToken();
@@ -83,7 +98,22 @@ function GamesStore() {
       }
 
       const data = await response.json();
-      setGames(data);
+
+      // Fetch library to check access
+      let accessibleGameIds = new Set();
+      if (userId) {
+        accessibleGameIds = await fetchUserLibrary(userId);
+      }
+
+      // Merge access info
+      const gamesWithAccess = data.map(game => ({
+        ...game,
+        canAccess: accessibleGameIds.has(game.gameId),
+        // Use a generic logic for access type if needed, or just boolean
+        accessType: accessibleGameIds.has(game.gameId) ? 'OWNED' : null
+      }));
+
+      setGames(gamesWithAccess);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -123,15 +153,29 @@ function GamesStore() {
 
       if (response.ok) {
         const data = await response.json();
+
+        // Fetch library to check access if userId is present
+        // We can potentially cache this, but for now fetch again to be safe/simple
+        let accessibleGameIds = new Set();
+        if (userId) {
+          accessibleGameIds = await fetchUserLibrary(userId);
+        }
+
+        const gamesWithAccess = data.map(game => ({
+          ...game,
+          canAccess: accessibleGameIds.has(game.gameId),
+          accessType: accessibleGameIds.has(game.gameId) ? 'OWNED' : null
+        }));
+
         // Apply search filter if needed
         if (searchQuery) {
-          const filtered = data.filter(game =>
+          const filtered = gamesWithAccess.filter(game =>
             game.gameName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             game.publishedBy?.toLowerCase().includes(searchQuery.toLowerCase())
           );
           setFilteredGames(filtered);
         } else {
-          setFilteredGames(data);
+          setFilteredGames(gamesWithAccess);
         }
       }
     } catch (err) {

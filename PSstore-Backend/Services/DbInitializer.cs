@@ -323,7 +323,6 @@ public static class DbInitializer
                 UserPassword = hashedPassword,
                 Age = 25,
                 CountryId = indiaId,
-                SubscriptionStatus = null,
                 CreatedAt = DateTime.UtcNow
             },
             new User
@@ -334,7 +333,6 @@ public static class DbInitializer
                 UserPassword = hashedPassword,
                 Age = 30,
                 CountryId = ukId,
-                SubscriptionStatus = null,
                 CreatedAt = DateTime.UtcNow
             },
             new User
@@ -345,7 +343,6 @@ public static class DbInitializer
                 UserPassword = hashedPassword,
                 Age = 28,
                 CountryId = indiaId,
-                SubscriptionStatus = null,
                 CreatedAt = DateTime.UtcNow
             },
             new User
@@ -356,7 +353,6 @@ public static class DbInitializer
                 UserPassword = hashedPassword,
                 Age = 22,
                 CountryId = ukId,
-                SubscriptionStatus = null,
                 CreatedAt = DateTime.UtcNow
             },
             new User
@@ -367,7 +363,6 @@ public static class DbInitializer
                 UserPassword = hashedPassword,
                 Age = 27,
                 CountryId = indiaId,
-                SubscriptionStatus = null,
                 CreatedAt = DateTime.UtcNow
             }
         };

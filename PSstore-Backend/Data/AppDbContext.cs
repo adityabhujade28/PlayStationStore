@@ -219,5 +219,23 @@ namespace PSstore.Data
             modelBuilder.Entity<Category>().HasQueryFilter(c => !c.IsDeleted);
         }
 
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            var entries = ChangeTracker
+                .Entries()
+                .Where(e => e.Entity is User || e.Entity is Game || e.Entity is SubscriptionPlan)
+                .Where(e => e.State == EntityState.Modified);
+
+            foreach (var entry in entries)
+            {
+                // Use reflection or interface if possible, but identifying by type is safe here
+                if (entry.Entity is User user) user.UpdatedAt = DateTime.UtcNow;
+                if (entry.Entity is Game game) game.UpdatedAt = DateTime.UtcNow;
+                if (entry.Entity is SubscriptionPlan plan) plan.UpdatedAt = DateTime.UtcNow;
+            }
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
     }
 }

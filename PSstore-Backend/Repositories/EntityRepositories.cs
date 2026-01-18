@@ -102,6 +102,21 @@ namespace PSstore.Repositories
             return await _dbSet.Where(g => g.FreeToPlay).ToListAsync();
         }
 
+        public async Task<IEnumerable<Guid>> GetFreeGameIdsAsync()
+        {
+            return await _dbSet
+                .Where(g => g.FreeToPlay)
+                .Select(g => g.GameId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Game>> GetGamesByIdsAsync(IEnumerable<Guid> gameIds)
+        {
+            return await _dbSet
+                .Where(g => gameIds.Contains(g.GameId))
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<Game>> SearchGamesAsync(string searchTerm)
         {
             return await _dbSet
@@ -216,6 +231,14 @@ namespace PSstore.Repositories
         public async Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId)
         {
             return await _dbSet.AnyAsync(upg => upg.UserId == userId && upg.GameId == gameId);
+        }
+
+        public async Task<IEnumerable<Guid>> GetPurchasedGameIdsAsync(Guid userId)
+        {
+            return await _dbSet
+                .Where(upg => upg.UserId == userId)
+                .Select(upg => upg.GameId)
+                .ToListAsync();
         }
     }
 

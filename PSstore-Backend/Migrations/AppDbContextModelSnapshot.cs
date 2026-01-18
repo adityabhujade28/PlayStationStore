@@ -182,6 +182,9 @@ namespace PSstore.Migrations
                     b.Property<decimal?>("BasePrice")
                         .HasColumnType("decimal(10,2)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
@@ -204,6 +207,9 @@ namespace PSstore.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("ReleaseDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("GameId");
@@ -301,6 +307,9 @@ namespace PSstore.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("SubscriptionId");
 
                     b.ToTable("SubscriptionPlans");
@@ -340,7 +349,7 @@ namespace PSstore.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("Age")
+                    b.Property<int>("Age")
                         .HasColumnType("int");
 
                     b.Property<Guid?>("CountryId")
@@ -355,9 +364,8 @@ namespace PSstore.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<string>("SubscriptionStatus")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("UserEmail")
                         .IsRequired()

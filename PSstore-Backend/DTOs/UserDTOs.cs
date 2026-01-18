@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace PSstore.DTOs
 {
     // Create new user
+    // Create new user
     public class CreateUserDTO
     {
         [Required]
@@ -18,8 +19,9 @@ namespace PSstore.DTOs
         [MinLength(6)]
         public string UserPassword { get; set; } = string.Empty;
 
+        [Required]
         [Range(0, 150)]
-        public int? Age { get; set; }
+        public int Age { get; set; }
 
         public Guid? CountryId { get; set; }
     }
@@ -43,8 +45,8 @@ namespace PSstore.DTOs
         public int UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
-        public int? Age { get; set; }
-        public string? SubscriptionStatus { get; set; }
+        public int Age { get; set; }
+        // SubscriptionStatus is removed or handled via UserDTO bool
         public DateTime CreatedAt { get; set; }
         public RegionDTO? CurrentRegion { get; set; }
     }
@@ -55,8 +57,8 @@ namespace PSstore.DTOs
         public Guid UserId { get; set; }
         public string UserName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
-        public int? Age { get; set; }
-        public bool SubscriptionStatus { get; set; }
+        public int Age { get; set; }
+        public bool SubscriptionStatus { get; set; } // Kept as bool (calculated), not string
         public DateTime CreatedAt { get; set; }
         public Guid? CountryId { get; set; }
     }

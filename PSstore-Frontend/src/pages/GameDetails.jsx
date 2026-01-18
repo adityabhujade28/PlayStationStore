@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { formatPrice } from '../utils/currency';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Navbar from '../components/Navbar';
@@ -162,12 +163,14 @@ function GameDetails() {
                 )}
               </div>
 
+
+
               <div className={styles.priceSection}>
                 {game.freeToPlay ? (
                   <div className={styles.freePrice}>Free</div>
-                ) : (
+                ) : !game.canAccess && (
                   <div className={styles.price}>
-                    {userCurrency} {game.price}
+                    {game.price ? formatPrice(game.price, userCurrency) : 'Price TBA'}
                   </div>
                 )}
               </div>

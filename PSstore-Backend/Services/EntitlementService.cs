@@ -11,22 +11,25 @@ namespace PSstore.Services
         private readonly IGameRepository _gameRepository;
         private readonly IUserPurchaseGameRepository _purchaseRepository;
         private readonly IUserSubscriptionPlanRepository _subscriptionRepository;
+        private readonly ISubscriptionPlanRepository _planRepository;
 
         public EntitlementService(
             AppDbContext context,
             IGameRepository gameRepository,
             IUserPurchaseGameRepository purchaseRepository,
-            IUserSubscriptionPlanRepository subscriptionRepository)
+            IUserSubscriptionPlanRepository subscriptionRepository,
+            ISubscriptionPlanRepository planRepository)
         {
             _context = context;
             _gameRepository = gameRepository;
             _purchaseRepository = purchaseRepository;
             _subscriptionRepository = subscriptionRepository;
+            _planRepository = planRepository;
         }
 
         public async Task<GameAccessResultDTO> CanUserAccessGameAsync(Guid userId, Guid gameId)
         {
-            // Get game details
+            // Same implementation as before, but ensure it's correct
             var game = await _gameRepository.GetByIdAsync(gameId);
             if (game == null)
             {
@@ -40,7 +43,6 @@ namespace PSstore.Services
                 };
             }
 
-            // Rule 1: Free-to-play games are accessible to everyone
             if (game.FreeToPlay)
             {
                 return new GameAccessResultDTO
@@ -53,7 +55,6 @@ namespace PSstore.Services
                 };
             }
 
-            // Rule 2: Check if user has purchased the game (permanent ownership)
             var hasPurchased = await _purchaseRepository.HasUserPurchasedGameAsync(userId, gameId);
             if (hasPurchased)
             {
@@ -71,11 +72,9 @@ namespace PSstore.Services
                 };
             }
 
-            // Rule 3: Check if user has active subscription that includes this game
             var activeSubscription = await _subscriptionRepository.GetActiveSubscriptionAsync(userId);
             if (activeSubscription != null)
             {
-                // Check if game is included in the subscription plan
                 var gameInPlan = await _context.GameSubscriptions
                     .AnyAsync(gs => gs.GameId == gameId && 
                                    gs.SubscriptionId == activeSubscription.SubscriptionPlanCountry.SubscriptionId);
@@ -95,7 +94,6 @@ namespace PSstore.Services
                 }
             }
 
-            // Rule 4: No access
             return new GameAccessResultDTO
             {
                 GameId = game.GameId,
@@ -114,30 +112,96 @@ namespace PSstore.Services
                 AccessibleGames = new List<GameAccessResultDTO>()
             };
 
-            // Get all games (not soft-deleted)
-            var allGames = await _gameRepository.GetAllAsync();
+            // 1. Get Purchased Game IDs (1 Query)
+            var purchasedGameIds = (await _purchaseRepository.GetPurchasedGameIdsAsync(userId)).ToHashSet();
 
-            // Check access for each game
-            foreach (var game in allGames)
+            // 2. Get Free Game IDs (1 Query)
+            var freeGameIds = (await _gameRepository.GetFreeGameIdsAsync()).ToHashSet();
+
+            // 3. Get Subscription Game IDs (1-2 Queries)
+            var subscriptionGameIds = new HashSet<Guid>();
+            var activeSubscription = await _subscriptionRepository.GetActiveSubscriptionAsync(userId);
+            
+            if (activeSubscription != null)
             {
-                var accessResult = await CanUserAccessGameAsync(userId, game.GameId);
-                if (accessResult.CanAccess)
+                var plan = await _planRepository.GetPlanWithGamesAsync(activeSubscription.SubscriptionPlanCountry.SubscriptionId);
+                if (plan?.GameSubscriptions != null)
                 {
-                    library.AccessibleGames.Add(accessResult);
-
-                    // Count by access type
-                    switch (accessResult.AccessType)
+                    foreach (var gs in plan.GameSubscriptions)
                     {
-                        case "FREE":
-                            library.TotalFreeGames++;
-                            break;
-                        case "PURCHASED":
-                            library.TotalPurchasedGames++;
-                            break;
-                        case "SUBSCRIPTION":
-                            library.TotalSubscriptionGames++;
-                            break;
+                        subscriptionGameIds.Add(gs.GameId);
                     }
+                }
+            }
+
+            // 4. Combine all unique IDs
+            var allAccessibleIds = purchasedGameIds
+                .Union(freeGameIds)
+                .Union(subscriptionGameIds)
+                .ToList();
+
+            if (!allAccessibleIds.Any())
+                return library;
+
+            // 5. Batch Fetch Game Details (1 Query)
+            var games = await _gameRepository.GetGamesByIdsAsync(allAccessibleIds);
+
+            // 6. Build Result in Memory
+            foreach (var game in games)
+            {
+                var accessResult = new GameAccessResultDTO
+                {
+                    GameId = game.GameId,
+                    GameName = game.GameName,
+                    CanAccess = true
+                };
+
+                // Determine primary access type (Priority: Purchased > Subscription > Free)
+                // Actually Priority usually: Purchased (Permanent) > Subscription (Timed) > Free (Generic)
+                
+                if (purchasedGameIds.Contains(game.GameId))
+                {
+                    accessResult.AccessType = "PURCHASED";
+                    accessResult.Message = "You own this game permanently";
+                    library.TotalPurchasedGames++;
+                }
+                else if (subscriptionGameIds.Contains(game.GameId))
+                {
+                    accessResult.AccessType = "SUBSCRIPTION";
+                    accessResult.Message = $"Included in your {activeSubscription?.SubscriptionPlanCountry.SubscriptionPlan.SubscriptionType} subscription";
+                    accessResult.SubscriptionPlan = activeSubscription?.SubscriptionPlanCountry.SubscriptionPlan.SubscriptionType;
+                    accessResult.SubscriptionExpiresOn = activeSubscription?.PlanEndDate;
+                    library.TotalSubscriptionGames++;
+                }
+                else if (freeGameIds.Contains(game.GameId))
+                {
+                    accessResult.AccessType = "FREE";
+                    accessResult.Message = "This is a free-to-play game";
+                    library.TotalFreeGames++;
+                }
+
+                library.AccessibleGames.Add(accessResult);
+            }
+
+            // Optional: Get purchase dates for purchased games (Requires one more query or improved previous query)
+            // Current implementation of 'CanUserAccess' fetches date.
+            // For batch view, we might skip the specific purchase date or fetch it in the first step if needed.
+            // The DTO has 'PurchasedOn'.
+            // To be perfect, we should fetch UserPurchases with dates in step 1.
+            // Step 1 was: GetPurchasedGameIdsAsync.
+            // Better: GetUserPurchasesAsync (which returns list of UserPurchaseGame objects with dates).
+            // Let's optimize Step 1 slightly in memory if we have the objects.
+            
+            // Re-optimizing Step 1 inline:
+            var purchases = await _purchaseRepository.GetUserPurchasesAsync(userId);
+            var purchaseMap = purchases.ToDictionary(p => p.GameId, p => p.PurchaseDate);
+            
+            // Update the loop to use purchaseMap
+            foreach (var result in library.AccessibleGames)
+            {
+                if (result.AccessType == "PURCHASED" && purchaseMap.TryGetValue(result.GameId, out var date))
+                {
+                    result.PurchasedOn = date;
                 }
             }
 
