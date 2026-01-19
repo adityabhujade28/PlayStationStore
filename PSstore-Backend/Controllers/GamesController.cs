@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using PSstore.DTOs;
 using PSstore.Interfaces;
 
@@ -16,6 +17,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<GameDTO>>> GetAllGames([FromQuery] bool includeDeleted = false, [FromQuery] Guid? userId = null)
         {
             var games = await _gameService.GetAllGamesAsync(includeDeleted, userId);
@@ -23,16 +25,18 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<ActionResult<GameDTO>> GetGameById(Guid id, [FromQuery] Guid? userId = null)
         {
             var game = await _gameService.GetGameByIdAsync(id, userId);
-            if (game == null)
+            if (game == null)   
                 return NotFound(new { message = "Game not found." });
 
             return Ok(game);
         }
 
         [HttpGet("{id}/access/{userId}")]
+        [Authorize]
         public async Task<ActionResult<GameWithAccessDTO>> GetGameWithAccess(Guid id, Guid userId)
         {
             var game = await _gameService.GetGameWithAccessAsync(id, userId);
@@ -43,6 +47,7 @@ namespace PSstore.Controllers
         }
 
         [HttpGet("search")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<GameDTO>>> SearchGames([FromQuery] string query, [FromQuery] Guid? userId = null)
         {
             if (string.IsNullOrWhiteSpace(query))
@@ -67,6 +72,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<GameDTO>> CreateGame([FromBody] CreateGameDTO createGameDTO)
         {
             if (!ModelState.IsValid)
@@ -77,6 +83,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<GameDTO>> UpdateGame(Guid id, [FromBody] UpdateGameDTO updateGameDTO)
         {
             if (!ModelState.IsValid)
@@ -90,6 +97,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] 
         public async Task<ActionResult> SoftDeleteGame(Guid id)
         {
             var result = await _gameService.SoftDeleteGameAsync(id);
@@ -100,6 +108,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("{id}/restore")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> RestoreGame(Guid id)
         {
             var result = await _gameService.RestoreGameAsync(id);
@@ -107,6 +116,43 @@ namespace PSstore.Controllers
                 return NotFound(new { message = "Game not found." });
 
             return Ok(new { message = "Game restored successfully." });
+        }
+        [HttpGet("{id}/pricing")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<GamePricingDTO>>> GetGamePricing(Guid id)
+        {
+            var pricing = await _gameService.GetGamePricingAsync(id);
+            return Ok(pricing);
+        }
+
+        [HttpPut("pricing/{gameCountryId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<GamePricingDTO>> UpdateGamePrice(Guid gameCountryId, [FromBody] decimal newPrice)
+        {
+            try
+            {
+                var result = await _gameService.UpdateGamePriceAsync(gameCountryId, newPrice);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+        }
+
+        [HttpPost("pricing")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<GamePricingDTO>> AddGamePrice([FromBody] CreateGamePricingDTO pricingDTO)
+        {
+            try
+            {
+                var result = await _gameService.AddGamePriceAsync(pricingDTO);
+                return CreatedAtAction(nameof(GetGamePricing), new { id = pricingDTO.GameId }, result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
     }
 }

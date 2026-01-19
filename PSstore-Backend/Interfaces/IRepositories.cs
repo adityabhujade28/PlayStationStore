@@ -11,6 +11,7 @@ namespace PSstore.Interfaces
         Task<bool> EmailExistsAsync(string email);
         Task SoftDeleteAsync(Guid userId);
         Task<bool> RestoreAsync(Guid userId);
+        Task<IEnumerable<User>> GetAllIncludingDeletedAsync();
     }
 
     public interface IGameRepository : IRepository<Game>
@@ -43,6 +44,7 @@ namespace PSstore.Interfaces
     public interface ICountryRepository : IRepository<Country>
     {
         Task<Country?> GetByCodeAsync(string countryCode);
+        Task<Country?> GetByNameAsync(string countryName);
         Task<IEnumerable<Country>> GetCountriesByRegionAsync(Guid regionId);
     }
 
@@ -50,6 +52,7 @@ namespace PSstore.Interfaces
     {
         Task<GameCountry?> GetGamePricingAsync(Guid gameId, Guid countryId);
         Task<IEnumerable<GameCountry>> GetGamePricesByCountryAsync(Guid countryId);
+        Task<IEnumerable<GameCountry>> GetPricesByGameIdAsync(Guid gameId);
     }
 
     public interface IUserPurchaseGameRepository : IRepository<UserPurchaseGame>
@@ -71,6 +74,7 @@ namespace PSstore.Interfaces
     {
         Task<SubscriptionPlanCountry?> GetPlanCountryDetailsAsync(Guid planCountryId);
         Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId);
+        Task<IEnumerable<SubscriptionPlanCountry>> GetBySubscriptionIdAsync(Guid subscriptionId);
     }
 
     public interface IUserSubscriptionPlanRepository : IRepository<UserSubscriptionPlan>
@@ -79,6 +83,7 @@ namespace PSstore.Interfaces
         Task<UserSubscriptionPlan?> GetActiveSubscriptionAsync(Guid userId);
         Task<bool> HasActiveSubscriptionAsync(Guid userId);
         Task<IEnumerable<UserSubscriptionPlan>> GetExpiredSubscriptionsAsync();
+        Task<int> CountActiveSubscriptionsAsync();
     }
 
     public interface ICartRepository : IRepository<Cart>
@@ -101,5 +106,11 @@ namespace PSstore.Interfaces
         Task<bool> EmailExistsAsync(string email);
         Task SoftDeleteAsync(Guid adminId);
         Task<bool> RestoreAsync(Guid adminId);
+    }
+    public interface IGameSubscriptionRepository : IRepository<GameSubscription>
+    {
+        Task<GameSubscription?> GetAsync(Guid subscriptionId, Guid gameId);
+        Task<IEnumerable<GameSubscription>> GetBySubscriptionIdAsync(Guid subscriptionId);
+        Task<bool> ExistsAsync(Guid subscriptionId, Guid gameId);
     }
 }

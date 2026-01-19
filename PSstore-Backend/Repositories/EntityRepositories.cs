@@ -67,6 +67,10 @@ namespace PSstore.Repositories
             }
             return false;
         }
+        public async Task<IEnumerable<User>> GetAllIncludingDeletedAsync()
+        {
+            return await _dbSet.IgnoreQueryFilters().ToListAsync();
+        }
     }
 
     public class GameRepository : BaseRepository<Game>, IGameRepository
@@ -285,11 +289,19 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
             .FirstOrDefaultAsync(spc => spc.SubscriptionPlanCountryId == planCountryId);
     }
 
-    public async Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId)
-    {
-        return await _dbSet
-            .Include(spc => spc.SubscriptionPlan)
-            .Where(spc => spc.CountryId == countryId)
+        public async Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId)
+        {
+            return await _dbSet
+                .Include(spc => spc.SubscriptionPlan)
+                .Where(spc => spc.CountryId == countryId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<SubscriptionPlanCountry>> GetBySubscriptionIdAsync(Guid subscriptionId)
+        {
+            return await _dbSet
+                .Include(spc => spc.Country)
+                .Where(spc => spc.SubscriptionId == subscriptionId)
                 .ToListAsync();
         }
     }
@@ -335,6 +347,12 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
             return await _dbSet
                 .Where(usp => usp.PlanEndDate < now)
                 .ToListAsync();
+        }
+
+        public async Task<int> CountActiveSubscriptionsAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await _dbSet.CountAsync(usp => usp.PlanStartDate <= now && usp.PlanEndDate >= now);
         }
     }
 
@@ -442,6 +460,13 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
                 .FirstOrDefaultAsync(c => c.CountryCode == countryCode);
         }
 
+        public async Task<Country?> GetByNameAsync(string countryName)
+        {
+            return await _dbSet
+                .Include(c => c.Region)
+                .FirstOrDefaultAsync(c => c.CountryName.ToLower() == countryName.ToLower());
+        }
+
         public async Task<IEnumerable<Country>> GetCountriesByRegionAsync(Guid regionId)
         {
             return await _dbSet
@@ -469,6 +494,39 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
                 .Include(gc => gc.Game)
                 .Where(gc => gc.CountryId == countryId)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<GameCountry>> GetPricesByGameIdAsync(Guid gameId)
+        {
+            return await _dbSet
+                .Include(gc => gc.Country)
+                .Where(gc => gc.GameId == gameId)
+                .ToListAsync();
+        }
+    }
+
+
+    // GameSubscription Repository
+    public class GameSubscriptionRepository : BaseRepository<GameSubscription>, IGameSubscriptionRepository
+    {
+        public GameSubscriptionRepository(AppDbContext context) : base(context) { }
+
+        public async Task<GameSubscription?> GetAsync(Guid subscriptionId, Guid gameId)
+        {
+            return await _dbSet.FirstOrDefaultAsync(gs => gs.SubscriptionId == subscriptionId && gs.GameId == gameId);
+        }
+
+        public async Task<IEnumerable<GameSubscription>> GetBySubscriptionIdAsync(Guid subscriptionId)
+        {
+            return await _dbSet
+                .Include(gs => gs.Game)
+                .Where(gs => gs.SubscriptionId == subscriptionId)
+                .ToListAsync();
+        }
+
+        public async Task<bool> ExistsAsync(Guid subscriptionId, Guid gameId)
+        {
+            return await _dbSet.AnyAsync(gs => gs.SubscriptionId == subscriptionId && gs.GameId == gameId);
         }
     }
 }

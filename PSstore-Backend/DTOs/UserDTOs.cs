@@ -61,6 +61,7 @@ namespace PSstore.DTOs
         public bool SubscriptionStatus { get; set; } // Kept as bool (calculated), not string
         public DateTime CreatedAt { get; set; }
         public Guid? CountryId { get; set; }
+        public bool IsDeleted { get; set; }
     }
 
     // User login

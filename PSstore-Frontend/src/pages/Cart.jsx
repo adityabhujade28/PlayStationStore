@@ -8,14 +8,12 @@ import apiClient from '../utils/apiClient';
 
 function Cart() {
   const { getDecodedToken, isAuthenticated } = useAuth();
-  // Fixed: use cartItems and fetchCartItems from context
   const { cartItems, fetchCartItems, removeFromCart, loading } = useCart();
   const navigate = useNavigate();
   const [userCurrency, setUserCurrency] = useState('INR');
   const [processingCheckout, setProcessingCheckout] = useState(false);
 
   useEffect(() => {
-    // Fixed: calling fetchCartItems
     fetchCartItems();
     fetchUserCurrency();
   }, [isAuthenticated]);

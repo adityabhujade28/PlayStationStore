@@ -1,0 +1,202 @@
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    border: 1px solid #333;
+    color: #fff;
+}
+
+.title {
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 1rem;
+}
+
+.formGroup {
+    margin-bottom: 1.5rem;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #ccc;
+    font-weight: 500;
+}
+
+.input,
+.select,
+.textarea {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: #2d2d2d;
+    border: 1px solid #333;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1rem;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+    outline: none;
+    border-color: #0070d1;
+}
+
+.checkboxGroup {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.checkbox {
+    width: 1.2rem;
+    height: 1.2rem;
+    accent-color: #0070d1;
+}
+
+.actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.saveButton {
+    background-color: #0070d1;
+    color: white;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 1;
+}
+
+.saveButton:hover {
+    background-color: #0056a3;
+}
+
+.cancelButton {
+    background-color: #333;
+    color: #ccc;
+    padding: 1rem 2rem;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+}
+
+.cancelButton:hover {
+    background-color: #444;
+}
+
+.error {
+    background-color: rgba(255, 77, 77, 0.1);
+    color: #ff4d4d;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+/* Added styles for consistent headers and tables */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 1rem;
+}
+
+.header .title {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.actionButton {
+    padding: 0.5rem 1rem;
+    border: 1px solid #333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    background-color: #333;
+    color: #ccc;
+    transition: all 0.2s;
+}
+
+.actionButton:hover {
+    background-color: #444;
+    color: white;
+}
+
+.tableContainer {
+    background-color: #252525;
+    border-radius: 8px;
+    overflow-x: auto;
+    /* Allow horizontal scroll if needed */
+    border: 1px solid #333;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    /* Added padding */
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #ccc;
+    font-size: 0.95rem;
+    display: table;
+    /* Force table display */
+}
+
+.table thead {
+    display: table-header-group;
+}
+
+.table tbody {
+    display: table-row-group;
+}
+
+.table tr {
+    display: table-row;
+}
+
+.table th,
+.table td {
+    display: table-cell;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #333;
+    vertical-align: middle;
+}
+
+.table th {
+    background-color: #1a1a1a;
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+.table tr:hover {
+    background-color: #2d2d2d;
+}
+
+/* Ensure inputs in table fit nicely */
+.table input[type="number"] {
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+    padding: 6px;
+    border-radius: 4px;
+    width: 80px;
+}

@@ -65,4 +65,26 @@ namespace PSstore.DTOs
         public DateTime? AccessExpiresOn { get; set; }
         public DateTime? PurchasedOn { get; set; }
     }
+
+    public class CreateGamePricingDTO
+    {
+        [Required]
+        public Guid GameId { get; set; }
+
+        [Required]
+        public Guid CountryId { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal Price { get; set; }
+    }
+
+    public class GamePricingDTO
+    {
+        public Guid GameCountryId { get; set; }
+        public Guid GameId { get; set; }
+        public Guid CountryId { get; set; }
+        public string CountryName { get; set; } = string.Empty;
+        public string Currency { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+    }
 }

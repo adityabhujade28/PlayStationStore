@@ -194,6 +194,80 @@ namespace PSstore.Services
             return await _gameRepository.RestoreAsync(gameId);
         }
 
+        public async Task<IEnumerable<GamePricingDTO>> GetGamePricingAsync(Guid gameId)
+        {
+            var prices = await _gameCountryRepository.GetPricesByGameIdAsync(gameId);
+            return prices.Select(gc => new GamePricingDTO
+            {
+                GameCountryId = gc.GameCountryId,
+                GameId = gc.GameId,
+                CountryId = gc.CountryId,
+                CountryName = gc.Country.CountryName,
+                Currency = gc.Country.Currency,
+                Price = gc.Price
+            });
+        }
+
+        public async Task<GamePricingDTO> UpdateGamePriceAsync(Guid gameCountryId, decimal newPrice)
+        {
+            var gc = await _gameCountryRepository.GetByIdAsync(gameCountryId);
+            if (gc == null) throw new KeyNotFoundException("Pricing not found.");
+            
+            // We need to reload Country for DTO return if not loaded
+            // But GetByIdAsync usually doesn't include. 
+            // Better to use GetGamePricingAsync or verify.
+            // Let's assume we can fetch it again or just update.
+            gc.Price = newPrice;
+            _gameCountryRepository.Update(gc);
+            await _gameCountryRepository.SaveChangesAsync();
+
+            // Fetch fully for return
+            var updated = (await _gameCountryRepository.GetPricesByGameIdAsync(gc.GameId))
+                           .FirstOrDefault(x => x.GameCountryId == gameCountryId);
+            
+            return new GamePricingDTO
+            {
+                GameCountryId = updated!.GameCountryId,
+                GameId = updated.GameId,
+                CountryId = updated.CountryId,
+                CountryName = updated.Country.CountryName,
+                Currency = updated.Country.Currency,
+                Price = updated.Price
+            };
+        }
+
+        public async Task<GamePricingDTO> AddGamePriceAsync(CreateGamePricingDTO pricingDTO)
+        {
+             // Check existing
+             var existing = await _gameCountryRepository.GetGamePricingAsync(pricingDTO.GameId, pricingDTO.CountryId);
+             if (existing != null) throw new InvalidOperationException("Price for this country already exists.");
+
+             var newGc = new GameCountry
+             {
+                 GameCountryId = Guid.NewGuid(),
+                 GameId = pricingDTO.GameId,
+                 CountryId = pricingDTO.CountryId,
+                 Price = pricingDTO.Price
+             };
+
+             await _gameCountryRepository.AddAsync(newGc);
+             await _gameCountryRepository.SaveChangesAsync();
+
+             // Fetch for return
+             var created = (await _gameCountryRepository.GetPricesByGameIdAsync(pricingDTO.GameId))
+                           .FirstOrDefault(x => x.GameCountryId == newGc.GameCountryId);
+
+             return new GamePricingDTO
+             {
+                GameCountryId = created!.GameCountryId,
+                GameId = created.GameId,
+                CountryId = created.CountryId,
+                CountryName = created.Country.CountryName,
+                Currency = created.Country.Currency,
+                Price = created.Price
+             };
+        }
+
         private async Task<GameDTO> MapToGameDTOAsync(Game game, Guid? countryId = null)
         {
             decimal price = game.BasePrice ?? 0m;

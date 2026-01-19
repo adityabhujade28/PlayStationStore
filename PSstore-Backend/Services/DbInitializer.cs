@@ -10,10 +10,11 @@ public static class DbInitializer
     public static async Task InitializeAsync(AppDbContext context)
     {
         // Check if database is already seeded
-        if (await context.Regions.AnyAsync())
+        // Check if database is already seeded (Regions only, we might need to seed Admin later)
+        bool isDataSeeded = await context.Regions.AnyAsync();
+
+        if (!isDataSeeded)
         {
-            return; // Database already seeded
-        }
 
         // Use fixed Guids for reference data (easier testing)
         var asiaId = Guid.Parse("10000000-0000-0000-0000-000000000001");
@@ -366,20 +367,37 @@ public static class DbInitializer
                 CreatedAt = DateTime.UtcNow
             }
         };
-        context.Users.AddRange(testUsers);
+            context.Users.AddRange(testUsers);
+            
+            await context.SaveChangesAsync();
 
-        await context.SaveChangesAsync();
+            Console.WriteLine("✅ Database seeded successfully with Guid-based data!");
+            Console.WriteLine($"   - {regions.Length} Regions");
+            Console.WriteLine($"   - {countries.Length} Countries");
+            Console.WriteLine($"   - {categories.Length} Categories");
+            Console.WriteLine($"   - {subscriptions.Length} Subscription Plans");
+            Console.WriteLine($"   - {subscriptionPlanCountries.Count} Subscription Pricing Options");
+            Console.WriteLine($"   - {games.Length} Games");
+            Console.WriteLine($"   - {gameCountries.Count} Game Pricing Entries");
+            Console.WriteLine($"   - {gameCategories.Count} Game-Category Mappings");
+            Console.WriteLine($"   - {gameSubscriptions.Count} Game-Subscription Mappings");
+            Console.WriteLine($"   - {testUsers.Length} Test Users (Password: Pass@123)");
+        }
 
-        Console.WriteLine("✅ Database seeded successfully with Guid-based data!");
-        Console.WriteLine($"   - {regions.Length} Regions");
-        Console.WriteLine($"   - {countries.Length} Countries");
-        Console.WriteLine($"   - {categories.Length} Categories");
-        Console.WriteLine($"   - {subscriptions.Length} Subscription Plans");
-        Console.WriteLine($"   - {subscriptionPlanCountries.Count} Subscription Pricing Options");
-        Console.WriteLine($"   - {games.Length} Games");
-        Console.WriteLine($"   - {gameCountries.Count} Game Pricing Entries");
-        Console.WriteLine($"   - {gameCategories.Count} Game-Category Mappings");
-        Console.WriteLine($"   - {gameSubscriptions.Count} Game-Subscription Mappings");
-        Console.WriteLine($"   - {testUsers.Length} Test Users (Password: Pass@123)");
+        // Seed Default Admin (Runs independently of other data)
+        if (!await context.Admins.AnyAsync())
+        {
+            var adminUser = new Admin
+            {
+                AdminId = Guid.NewGuid(),
+                AdminEmail = "admin@store.com",
+                AdminPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123", workFactor: 12),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+            context.Admins.Add(adminUser);
+            await context.SaveChangesAsync();
+            Console.WriteLine("✅ Default Admin seeded: admin@store.com / Admin@123");
+        }
     }
 }

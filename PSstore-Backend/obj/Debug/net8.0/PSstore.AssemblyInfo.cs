@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PSstore")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+55055a42ae69e89fcd919fce03d6677babfcba9b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f4b417ce9ecbe1b13564dee037b70a50f60cdc77")]
 [assembly: System.Reflection.AssemblyProductAttribute("PSstore")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PSstore")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

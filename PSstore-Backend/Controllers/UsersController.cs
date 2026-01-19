@@ -39,6 +39,14 @@ namespace PSstore.Controllers
             return Ok(user);
         }
 
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllUsers()
+        {
+            var users = await _userService.GetAllUsersAsync();
+            return Ok(users);
+        }
+
         [HttpPost]
         public async Task<ActionResult<UserDTO>> CreateUser([FromBody] CreateUserDTO createUserDTO)
         {
@@ -71,6 +79,7 @@ namespace PSstore.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> SoftDeleteUser(Guid id)
         {
             var result = await _userService.SoftDeleteUserAsync(id);
@@ -81,6 +90,7 @@ namespace PSstore.Controllers
         }
 
         [HttpPost("{id}/restore")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> RestoreUser(Guid id)
         {
             var result = await _userService.RestoreUserAsync(id);

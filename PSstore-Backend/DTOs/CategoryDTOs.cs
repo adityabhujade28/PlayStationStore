@@ -6,7 +6,7 @@ namespace PSstore.DTOs
     public class CategoryDTO
     {
         public Guid CategoryId { get; set; }
-        public string CategoryName { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
     }
 
     // Create category (Admin)
@@ -14,7 +14,7 @@ namespace PSstore.DTOs
     {
         [Required]
         [MaxLength(100)]
-        public string CategoryName { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
     }
 
     // Update category (Admin)
@@ -22,6 +22,6 @@ namespace PSstore.DTOs
     {
         [Required]
         [MaxLength(100)]
-        public string CategoryName { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
     }
 }

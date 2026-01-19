@@ -138,6 +138,29 @@ namespace PSstore.Services
             return true;
         }
 
+        // Admin Methods
+        public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
+        {
+            // Note: UserRepository.GetAllAsync usually filters out soft-deleted queries via QueryFilter.
+            // If we want to see deleted users (for Restore), we might need IgnoreQueryFilters in repo or a specific method.
+            // checking IRepository.cs -> FindAsync / GetAllAsync.
+            // Usually global filters apply. Let's assume for now we just want active users, or better, ALL users including deleted.
+            // If repository doesn't expose IgnoreQueryFilters, we might miss deleted users. 
+            // However, looking at DbContext, we have Global Query Filter. 
+            // We should ideally have GetUsers(bool includeDeleted). 
+            // For now, let's just get all provided by repo.
+            
+            var users = await _userRepository.GetAllIncludingDeletedAsync();
+            var userDtos = new List<UserDTO>();
+
+            foreach (var user in users)
+            {
+                var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(user.UserId);
+                userDtos.Add(MapToUserDTO(user, hasSubscription));
+            }
+            return userDtos;
+        }
+
         private static UserDTO MapToUserDTO(User user, bool hasActiveSubscription)
         {
             return new UserDTO
@@ -148,7 +171,8 @@ namespace PSstore.Services
                 Age = user.Age,
                 SubscriptionStatus = hasActiveSubscription,
                 CreatedAt = user.CreatedAt,
-                CountryId = user.CountryId
+                CountryId = user.CountryId,
+                IsDeleted = user.IsDeleted
             };
         }
     }

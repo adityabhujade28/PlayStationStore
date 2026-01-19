@@ -20,6 +20,10 @@ namespace PSstore.Interfaces
         Task<GameDTO?> UpdateGameAsync(Guid gameId, UpdateGameDTO updateGameDTO);
         Task<bool> SoftDeleteGameAsync(Guid gameId);
         Task<bool> RestoreGameAsync(Guid gameId);
+        
+        Task<IEnumerable<GamePricingDTO>> GetGamePricingAsync(Guid gameId);
+        Task<GamePricingDTO> UpdateGamePriceAsync(Guid gameCountryId, decimal newPrice);
+        Task<GamePricingDTO> AddGamePriceAsync(CreateGamePricingDTO pricingDTO);
     }
 
     public interface IPurchaseService
@@ -38,8 +42,22 @@ namespace PSstore.Interfaces
         Task<IEnumerable<SubscriptionPlanDTO>> GetAllSubscriptionPlansAsync();
         Task<IEnumerable<SubscriptionPlanCountryDTO>> GetSubscriptionPlanOptionsAsync(Guid subscriptionId, Guid countryId);
         Task<bool> CancelSubscriptionAsync(Guid userId);
+        
+        // Admin Methods
+        Task<SubscriptionPlanDTO> CreateSubscriptionPlanAsync(CreatePlanDTO createPlanDTO);
+        Task<SubscriptionPlanDTO?> UpdateSubscriptionPlanAsync(Guid subscriptionId, UpdatePlanDTO updatePlanDTO);
+        Task<bool> DeleteSubscriptionPlanAsync(Guid subscriptionId);
+        
+        // Pricing Management
+        Task<IEnumerable<SubscriptionPricingDTO>> GetSubscriptionPricingAsync(Guid subscriptionId);
+        Task<SubscriptionPricingDTO> UpdateSubscriptionPriceAsync(Guid planCountryId, decimal newPrice);
+        Task<SubscriptionPricingDTO> AddSubscriptionPriceAsync(CreatePlanPricingDTO pricingDTO);
+        
+        // Game Management
+        Task<bool> AddGameToSubscriptionAsync(Guid subscriptionId, Guid gameId);
+        Task<bool> RemoveGameFromSubscriptionAsync(Guid subscriptionId, Guid gameId);
+        Task<IEnumerable<GameDTO>> GetIncludedGamesAsync(Guid subscriptionId);
     }
-
     public interface ICartService
     {
         Task<CartDTO?> GetUserCartAsync(Guid userId);
@@ -60,8 +78,10 @@ namespace PSstore.Interfaces
         Task<bool> RestoreUserAsync(Guid userId);
         Task<LoginResponseDTO?> LoginAsync(LoginDTO loginDTO);
         Task<bool> ChangePasswordAsync(Guid userId, string oldPassword, string newPassword);
+        
+        // Admin Methods
+        Task<IEnumerable<UserDTO>> GetAllUsersAsync();
     }
-
     public interface ICategoryService
     {
         Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId);
