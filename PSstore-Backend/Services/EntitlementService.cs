@@ -183,15 +183,6 @@ namespace PSstore.Services
                 library.AccessibleGames.Add(accessResult);
             }
 
-            // Optional: Get purchase dates for purchased games (Requires one more query or improved previous query)
-            // Current implementation of 'CanUserAccess' fetches date.
-            // For batch view, we might skip the specific purchase date or fetch it in the first step if needed.
-            // The DTO has 'PurchasedOn'.
-            // To be perfect, we should fetch UserPurchases with dates in step 1.
-            // Step 1 was: GetPurchasedGameIdsAsync.
-            // Better: GetUserPurchasesAsync (which returns list of UserPurchaseGame objects with dates).
-            // Let's optimize Step 1 slightly in memory if we have the objects.
-            
             // Re-optimizing Step 1 inline:
             var purchases = await _purchaseRepository.GetUserPurchasesAsync(userId);
             var purchaseMap = purchases.ToDictionary(p => p.GameId, p => p.PurchaseDate);

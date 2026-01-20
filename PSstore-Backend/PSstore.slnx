@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../PSstore-Backend.Tests/PSstore-Backend.Tests.csproj" Id="aa68506f-2dc8-4a5d-b8b9-00c138b8e922" />
   <Project Path="PSstore.csproj" />
 </Solution>
