@@ -11,11 +11,13 @@ namespace PSstore.Controllers
     {
         private readonly IUserService _userService;
         private readonly IEntitlementService _entitlementService;
+        private readonly ILogger<UsersController> _logger;
 
-        public UsersController(IUserService userService, IEntitlementService entitlementService)
+        public UsersController(IUserService userService, IEntitlementService entitlementService, ILogger<UsersController> logger)
         {
             _userService = userService;
             _entitlementService = entitlementService;
+            _logger = logger;
         }
 
         [HttpGet("{id}")]
@@ -55,11 +57,14 @@ namespace PSstore.Controllers
 
             try
             {
+                _logger.LogInformation("Attempting to register new user with email: {Email}", createUserDTO.UserEmail);
                 var user = await _userService.CreateUserAsync(createUserDTO);
+                _logger.LogInformation("User created successfully with ID: {UserId}", user.UserId);
                 return CreatedAtAction(nameof(GetUserById), new { id = user.UserId }, user);
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning("User registration failed for email: {Email}. Reason: {Reason}", createUserDTO.UserEmail, ex.Message);
                 return BadRequest(new { message = ex.Message });
             }
         }
@@ -106,10 +111,15 @@ namespace PSstore.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            _logger.LogInformation("Login attempt for email: {Email}", loginDTO.UserEmail);
             var loginResponse = await _userService.LoginAsync(loginDTO);
             if (loginResponse == null)
+            {
+                _logger.LogWarning("Login failed for email: {Email}. Invalid credentials.", loginDTO.UserEmail);
                 return Unauthorized(new { message = "Invalid email or password." });
+            }
 
+            _logger.LogInformation("Login successful for user ID: {UserId}", loginResponse.UserId);
             return Ok(loginResponse);
         }
 
@@ -119,10 +129,15 @@ namespace PSstore.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            _logger.LogInformation("Password change attempt for user ID: {UserId}", id);
             var result = await _userService.ChangePasswordAsync(id, changePasswordDTO.OldPassword, changePasswordDTO.NewPassword);
             if (!result)
+            {
+                _logger.LogWarning("Password change failed for user ID: {UserId}. Invalid old password.", id);
                 return BadRequest(new { message = "Failed to change password. Check your old password." });
+            }
 
+            _logger.LogInformation("Password changed successfully for user ID: {UserId}", id);
             return Ok(new { message = "Password changed successfully." });
         }
 

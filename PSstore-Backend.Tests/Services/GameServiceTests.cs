@@ -106,7 +106,7 @@ namespace PSstore_Backend.Tests.Services
 
             _mockGameRepo.Setup(r => r.GetByIdAsync(gameId)).ReturnsAsync(game);
             _mockEntitlementService.Setup(s => s.CanUserAccessGameAsync(userId, gameId)).ReturnsAsync(accessResult);
-            // Verify null user handling (or just no country setup)
+            
             _mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((User?)null);
 
             // Act

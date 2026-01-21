@@ -10,7 +10,7 @@ namespace PSstore.Models
 
         [Required]
         [MaxLength(100)]
-        public string CategoryName { get; set; } 
+        public required string CategoryName { get; set; } 
 
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }

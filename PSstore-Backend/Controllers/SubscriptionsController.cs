@@ -11,20 +11,25 @@ namespace PSstore.Controllers
     public class SubscriptionsController : ControllerBase
     {
         private readonly ISubscriptionService _subscriptionService;
+        private readonly ILogger<SubscriptionsController> _logger;
 
-        public SubscriptionsController(ISubscriptionService subscriptionService)
+        public SubscriptionsController(ISubscriptionService subscriptionService, ILogger<SubscriptionsController> logger)
         {
             _subscriptionService = subscriptionService;
+            _logger = logger;
         }
 
         [HttpGet("plans")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<SubscriptionPlanDTO>>> GetAllPlans()
         {
+            _logger.LogInformation("Fetching available subscription plans.");
             var plans = await _subscriptionService.GetAllSubscriptionPlansAsync();
             return Ok(plans);
         }
 
         [HttpGet("plans/{subscriptionId}/options")]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<SubscriptionPlanCountryDTO>>> GetPlanOptions(Guid subscriptionId, [FromQuery] Guid countryId)
         {
             var options = await _subscriptionService.GetSubscriptionPlanOptionsAsync(subscriptionId, countryId);
@@ -37,11 +42,16 @@ namespace PSstore.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            _logger.LogInformation("Subscription attempt for user ID: {UserId}, Plan ID: {PlanId}", userId, subscriptionDTO.SubscriptionPlanCountryId);
             var result = await _subscriptionService.SubscribeAsync(userId, subscriptionDTO);
 
             if (!result.Success)
+            {
+                _logger.LogWarning("Subscription failed for user ID: {UserId}. Reason: {Reason}", userId, result.Message);
                 return BadRequest(result);
+            }
 
+            _logger.LogInformation("Subscription successful for user ID: {UserId}, Subscription ID: {SubscriptionId}", userId, result.UserSubscriptionId);
             return Ok(result);
         }
 
@@ -65,10 +75,15 @@ namespace PSstore.Controllers
         [HttpDelete("user/{userId}")]
         public async Task<ActionResult> CancelSubscription(Guid userId)
         {
+            _logger.LogInformation("Subscription cancellation requested for user ID: {UserId}", userId);
             var result = await _subscriptionService.CancelSubscriptionAsync(userId);
             if (!result)
+            {
+                _logger.LogWarning("Cancel failed for user ID: {UserId}. No active subscription found.", userId);
                 return NotFound(new { message = "No active subscription to cancel." });
+            }
 
+            _logger.LogInformation("Subscription cancelled successfully for user ID: {UserId}", userId);
             return Ok(new { message = "Subscription cancelled successfully." });
         }
 
@@ -109,7 +124,7 @@ namespace PSstore.Controllers
 
                 return NoContent();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // Likely FK constraint
                 return BadRequest(new { message = "Cannot delete plan as it is in use by users or has linked data." });

@@ -17,7 +17,7 @@ namespace PSstore.Repositories
         public async Task<User?> GetUserWithRegionAsync(Guid userId)
         {
             return await _dbSet
-                .Include(u => u.Country)
+                .Include(u => u.Country!)
                     .ThenInclude(c => c.Region)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
         }

@@ -14,6 +14,8 @@ namespace PSstore_Backend.Tests.Services
         private readonly Mock<ISubscriptionPlanRepository> _mockSubPlanRepo;
         private readonly Mock<ISubscriptionPlanCountryRepository> _mockPlanCountryRepo;
         private readonly Mock<IUserRepository> _mockUserRepo;
+        private readonly Mock<ICountryRepository> _mockCountryRepo;
+        private readonly Mock<IGameSubscriptionRepository> _mockGameSubRepo;
         private readonly SubscriptionService _subscriptionService;
         private readonly Faker _faker;
 
@@ -23,12 +25,16 @@ namespace PSstore_Backend.Tests.Services
             _mockSubPlanRepo = new Mock<ISubscriptionPlanRepository>();
             _mockPlanCountryRepo = new Mock<ISubscriptionPlanCountryRepository>();
             _mockUserRepo = new Mock<IUserRepository>();
+            _mockCountryRepo = new Mock<ICountryRepository>();
+            _mockGameSubRepo = new Mock<IGameSubscriptionRepository>();
 
             _subscriptionService = new SubscriptionService(
                 _mockUserSubRepo.Object,
                 _mockSubPlanRepo.Object,
                 _mockPlanCountryRepo.Object,
-                _mockUserRepo.Object
+                _mockUserRepo.Object,
+                _mockCountryRepo.Object,
+                _mockGameSubRepo.Object
             );
 
             _faker = new Faker();

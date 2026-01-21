@@ -10,16 +10,19 @@ namespace PSstore.Controllers
     public class GamesController : ControllerBase
     {
         private readonly IGameService _gameService;
+        private readonly ILogger<GamesController> _logger;
 
-        public GamesController(IGameService gameService)
+        public GamesController(IGameService gameService, ILogger<GamesController> logger)
         {
             _gameService = gameService;
+            _logger = logger;
         }
 
         [HttpGet]
         [Authorize]
         public async Task<ActionResult<IEnumerable<GameDTO>>> GetAllGames([FromQuery] bool includeDeleted = false, [FromQuery] Guid? userId = null)
         {
+            _logger.LogInformation("Fetching all games. IncludeDeleted: {IncludeDeleted}, UserId: {UserId}", includeDeleted, userId);
             var games = await _gameService.GetAllGamesAsync(includeDeleted, userId);
             return Ok(games);
         }
@@ -28,9 +31,13 @@ namespace PSstore.Controllers
         [Authorize]
         public async Task<ActionResult<GameDTO>> GetGameById(Guid id, [FromQuery] Guid? userId = null)
         {
+            _logger.LogInformation("Fetching game details for ID: {GameId}", id);
             var game = await _gameService.GetGameByIdAsync(id, userId);
-            if (game == null)   
+            if (game == null)
+            {
+                _logger.LogWarning("Game with ID: {GameId} not found.", id);
                 return NotFound(new { message = "Game not found." });
+            }
 
             return Ok(game);
         }

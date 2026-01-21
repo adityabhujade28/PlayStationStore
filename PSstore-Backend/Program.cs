@@ -6,8 +6,17 @@ using PSstore.Data;
 using PSstore.Interfaces;
 using PSstore.Repositories;
 using PSstore.Services;
+using Serilog;
+using PSstore.Middleware;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog(); // Use Serilog for logging
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -24,9 +33,9 @@ builder.Services.AddScoped<IRegionRepository, RegionRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IGameCountryRepository, GameCountryRepository>();
 builder.Services.AddScoped<IUserPurchaseGameRepository, UserPurchaseGameRepository>();
-        builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
-        builder.Services.AddScoped<IGameSubscriptionRepository, GameSubscriptionRepository>();
-        builder.Services.AddScoped<ISubscriptionPlanCountryRepository, SubscriptionPlanCountryRepository>();
+builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+builder.Services.AddScoped<IGameSubscriptionRepository, GameSubscriptionRepository>();
+builder.Services.AddScoped<ISubscriptionPlanCountryRepository, SubscriptionPlanCountryRepository>();
 builder.Services.AddScoped<IUserSubscriptionPlanRepository, UserSubscriptionPlanRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
@@ -95,6 +104,8 @@ using (var scope = app.Services.CreateScope())
 
 // Use CORS FIRST - before other middleware
 app.UseCors("AllowReactApp");
+
+app.UseMiddleware<ExceptionMiddleware>(); // Global Exception Handling
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
