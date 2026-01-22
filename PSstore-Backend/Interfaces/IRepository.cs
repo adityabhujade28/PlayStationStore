@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using PSstore.DTOs;
 
 namespace PSstore.Interfaces
 {
@@ -11,6 +12,18 @@ namespace PSstore.Interfaces
         Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>> predicate);
         Task<bool> ExistsAsync(Expression<Func<T, bool>> predicate);
         Task<int> CountAsync(Expression<Func<T, bool>> predicate);
+        Task<int> CountAsync();
+
+        // Pagination operations
+        /// <summary>
+        /// Get paginated results with optional filtering and sorting
+        /// </summary>
+        Task<PagedResponse<T>> GetPagedAsync(
+            int pageNumber, 
+            int pageSize, 
+            Expression<Func<T, bool>>? predicate = null,
+            Expression<Func<T, object>>? orderBy = null,
+            bool ascending = true);
 
         // Write operations
         Task<T> AddAsync(T entity);

@@ -105,7 +105,11 @@ function Cart() {
           {cartItems.map((item) => (
             <div key={item.cartItemId} className={styles.cartItem}>
               <div className={styles.itemImage}>
-                <div className={styles.placeholder}>🎮</div>
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.gameName} className={styles.image} />
+                ) : (
+                  <div className={styles.placeholder}>🎮</div>
+                )}
               </div>
               <div className={styles.itemDetails}>
                 <h3 className={styles.itemName}>{item.gameName}</h3>

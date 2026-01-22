@@ -144,8 +144,11 @@ function GameDetails() {
           <div className={styles.gameHeader}>
             <div className={styles.imageSection}>
               <div className={styles.mainImage}>
-                {/* Placeholder for game image matching CSS structure */}
-                <div className={styles.imagePlaceholder}>🎮</div>
+                {game.imageUrl ? (
+                  <img src={game.imageUrl} alt={game.gameName} className={styles.gameImage} />
+                ) : (
+                  <div className={styles.imagePlaceholder}>🎮</div>
+                )}
               </div>
               {game.freeToPlay && <div className={styles.freeBadge}>Free</div>}
             </div>

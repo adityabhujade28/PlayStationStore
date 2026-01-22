@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PSstore.Data;
+using PSstore.DTOs;
 using PSstore.Interfaces;
 using PSstore.Models;
 
@@ -70,6 +71,64 @@ namespace PSstore.Repositories
         public async Task<IEnumerable<User>> GetAllIncludingDeletedAsync()
         {
             return await _dbSet.IgnoreQueryFilters().ToListAsync();
+        }
+
+        public async Task<PagedResponse<User>> GetPagedUsersAsync(UserPaginationQuery query)
+        {
+            IQueryable<User> queryable = _dbSet;
+
+            // Include deleted if requested
+            if (query.IncludeDeleted)
+            {
+                queryable = queryable.IgnoreQueryFilters();
+            }
+
+            // Filter by country if specified
+            if (query.CountryId.HasValue)
+            {
+                queryable = queryable.Where(u => u.CountryId == query.CountryId);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var searchTerm = query.SearchTerm.ToLower();
+                queryable = queryable.Where(u => 
+                    u.UserName.ToLower().Contains(searchTerm) || 
+                    u.UserEmail.ToLower().Contains(searchTerm));
+            }
+
+            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                queryable = query.SortBy.ToLower() switch
+                {
+                    "email" => query.SortDirection == "asc" 
+                        ? queryable.OrderBy(u => u.UserEmail) 
+                        : queryable.OrderByDescending(u => u.UserEmail),
+                    "createdat" => query.SortDirection == "asc" 
+                        ? queryable.OrderBy(u => u.CreatedAt) 
+                        : queryable.OrderByDescending(u => u.CreatedAt),
+                    "name" or _ => query.SortDirection == "asc" 
+                        ? queryable.OrderBy(u => u.UserName) 
+                        : queryable.OrderByDescending(u => u.UserName),
+                };
+            }
+            else
+            {
+                queryable = queryable.OrderBy(u => u.UserName);
+            }
+
+            // Get total count
+            int totalCount = await queryable.CountAsync();
+
+            // Apply pagination
+            var users = await queryable
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            return new PagedResponse<User>(users, totalCount, query.PageNumber, query.PageSize);
         }
     }
 
@@ -157,6 +216,116 @@ namespace PSstore.Repositories
         {
             return await _dbSet.IgnoreQueryFilters().ToListAsync();
         }
+
+        public async Task<PagedResponse<Game>> GetPagedGamesAsync(GamePaginationQuery query)
+        {
+            IQueryable<Game> queryable = _dbSet
+                .Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Include(g => g.GameSubscriptions)
+                    .ThenInclude(gs => gs.SubscriptionPlan);
+
+            // Include deleted if requested
+            if (query.IncludeDeleted)
+            {
+                queryable = queryable.IgnoreQueryFilters();
+            }
+
+            // Filter by category if specified
+            if (query.CategoryId.HasValue)
+            {
+                queryable = queryable.Where(g => 
+                    g.GameCategories.Any(gc => gc.CategoryId == query.CategoryId));
+            }
+
+            // Filter free to play only if specified
+            if (query.FreeToPlayOnly.HasValue && query.FreeToPlayOnly.Value)
+            {
+                queryable = queryable.Where(g => g.FreeToPlay);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var searchTerm = query.SearchTerm.ToLower();
+                queryable = queryable.Where(g => 
+                    g.GameName.ToLower().Contains(searchTerm) || 
+                    (g.PublishedBy != null && g.PublishedBy.ToLower().Contains(searchTerm)));
+            }
+
+            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                queryable = query.SortBy.ToLower() switch
+                {
+                    "name" => query.SortDirection == "asc"
+                        ? queryable.OrderBy(g => g.GameName)
+                        : queryable.OrderByDescending(g => g.GameName),
+                    "releasedate" => query.SortDirection == "asc"
+                        ? queryable.OrderBy(g => g.ReleaseDate)
+                        : queryable.OrderByDescending(g => g.ReleaseDate),
+                    "createdat" => query.SortDirection == "asc"
+                        ? queryable.OrderBy(g => g.CreatedAt)
+                        : queryable.OrderByDescending(g => g.CreatedAt),
+                    _ => queryable.OrderBy(g => g.GameName)
+                };
+            }
+            else
+            {
+                queryable = queryable.OrderBy(g => g.GameName);
+            }
+
+            // Get total count
+            int totalCount = await queryable.CountAsync();
+
+            // Apply pagination
+            var games = await queryable
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<Game>(games, totalCount, query.PageNumber, query.PageSize);
+        }
+
+        public async Task<PagedResponse<Game>> GetPagedGamesByCategoryAsync(Guid categoryId, int pageNumber, int pageSize)
+        {
+            var queryable = _dbSet
+                .Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Where(g => g.GameCategories.Any(gc => gc.CategoryId == categoryId))
+                .OrderBy(g => g.GameName);
+
+            int totalCount = await queryable.CountAsync();
+
+            var games = await queryable
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<Game>(games, totalCount, pageNumber, pageSize);
+        }
+
+        public async Task<PagedResponse<Game>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize)
+        {
+            var queryable = _dbSet
+                .Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Where(g => g.GameName.Contains(searchTerm) || 
+                           (g.PublishedBy != null && g.PublishedBy.Contains(searchTerm)))
+                .OrderBy(g => g.GameName);
+
+            int totalCount = await queryable.CountAsync();
+
+            var games = await queryable
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<Game>(games, totalCount, pageNumber, pageSize);
+        }
     }
 
     public class CategoryRepository : BaseRepository<Category>, ICategoryRepository
@@ -243,6 +412,24 @@ namespace PSstore.Repositories
                 .Where(upg => upg.UserId == userId)
                 .Select(upg => upg.GameId)
                 .ToListAsync();
+        }
+
+        public async Task<PagedResponse<UserPurchaseGame>> GetPagedUserPurchasesAsync(Guid userId, int pageNumber, int pageSize)
+        {
+            var queryable = _dbSet
+                .Include(upg => upg.Game)
+                .Where(upg => upg.UserId == userId)
+                .OrderByDescending(upg => upg.PurchaseDate);
+
+            int totalCount = await queryable.CountAsync();
+
+            var purchases = await queryable
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<UserPurchaseGame>(purchases, totalCount, pageNumber, pageSize);
         }
     }
 

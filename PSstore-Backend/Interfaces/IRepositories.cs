@@ -1,4 +1,5 @@
 using PSstore.Models;
+using PSstore.DTOs;
 
 namespace PSstore.Interfaces
 {
@@ -12,6 +13,11 @@ namespace PSstore.Interfaces
         Task SoftDeleteAsync(Guid userId);
         Task<bool> RestoreAsync(Guid userId);
         Task<IEnumerable<User>> GetAllIncludingDeletedAsync();
+        
+        /// <summary>
+        /// Get paginated users with optional filtering
+        /// </summary>
+        Task<PagedResponse<User>> GetPagedUsersAsync(UserPaginationQuery query);
     }
 
     public interface IGameRepository : IRepository<Game>
@@ -26,6 +32,21 @@ namespace PSstore.Interfaces
         Task SoftDeleteAsync(Guid gameId);
         Task<bool> RestoreAsync(Guid gameId);
         Task<IEnumerable<Game>> GetAllIncludingDeletedAsync();
+        
+        /// <summary>
+        /// Get paginated games with optional filtering by category, search term, and soft delete
+        /// </summary>
+        Task<PagedResponse<Game>> GetPagedGamesAsync(GamePaginationQuery query);
+        
+        /// <summary>
+        /// Get paginated games by category
+        /// </summary>
+        Task<PagedResponse<Game>> GetPagedGamesByCategoryAsync(Guid categoryId, int pageNumber, int pageSize);
+        
+        /// <summary>
+        /// Get paginated search results
+        /// </summary>
+        Task<PagedResponse<Game>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize);
     }
 
     public interface ICategoryRepository : IRepository<Category>
@@ -61,6 +82,11 @@ namespace PSstore.Interfaces
         Task<UserPurchaseGame?> GetPurchaseDetailsAsync(Guid purchaseId);
         Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
         Task<IEnumerable<Guid>> GetPurchasedGameIdsAsync(Guid userId);
+        
+        /// <summary>
+        /// Get paginated purchase history for a user
+        /// </summary>
+        Task<PagedResponse<UserPurchaseGame>> GetPagedUserPurchasesAsync(Guid userId, int pageNumber, int pageSize);
     }
 
     public interface ISubscriptionPlanRepository : IRepository<SubscriptionPlan>

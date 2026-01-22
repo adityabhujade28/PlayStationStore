@@ -141,15 +141,6 @@ namespace PSstore.Services
         // Admin Methods
         public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
         {
-            // Note: UserRepository.GetAllAsync usually filters out soft-deleted queries via QueryFilter.
-            // If we want to see deleted users (for Restore), we might need IgnoreQueryFilters in repo or a specific method.
-            // checking IRepository.cs -> FindAsync / GetAllAsync.
-            // Usually global filters apply. Let's assume for now we just want active users, or better, ALL users including deleted.
-            // If repository doesn't expose IgnoreQueryFilters, we might miss deleted users. 
-            // However, looking at DbContext, we have Global Query Filter. 
-            // We should ideally have GetUsers(bool includeDeleted). 
-            // For now, let's just get all provided by repo.
-            
             var users = await _userRepository.GetAllIncludingDeletedAsync();
             var userDtos = new List<UserDTO>();
 
@@ -159,6 +150,26 @@ namespace PSstore.Services
                 userDtos.Add(MapToUserDTO(user, hasSubscription));
             }
             return userDtos;
+        }
+
+        /// <summary>
+        /// Get paginated users with optional filtering
+        /// Optimized for admin user management with pagination support
+        /// </summary>
+        public async Task<PagedResponse<UserDTO>> GetPagedUsersAsync(UserPaginationQuery query)
+        {
+            // Get paginated users from repository
+            var pagedUsers = await _userRepository.GetPagedUsersAsync(query);
+
+            // Convert to DTOs and check subscriptions efficiently
+            var userDtos = new List<UserDTO>();
+            foreach (var user in pagedUsers.Items)
+            {
+                var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(user.UserId);
+                userDtos.Add(MapToUserDTO(user, hasSubscription));
+            }
+
+            return new PagedResponse<UserDTO>(userDtos, pagedUsers.TotalCount, pagedUsers.PageNumber, pagedUsers.PageSize);
         }
 
         private static UserDTO MapToUserDTO(User user, bool hasActiveSubscription)

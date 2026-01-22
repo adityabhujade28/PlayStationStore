@@ -18,6 +18,8 @@ namespace PSstore.DTOs
         public Guid CartItemId { get; set; }
         public Guid GameId { get; set; }
         public string GameName { get; set; } = string.Empty;
+        public string? Publisher { get; set; }
+        public string? ImageUrl { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }

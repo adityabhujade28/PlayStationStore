@@ -12,6 +12,8 @@ namespace PSstore.DTOs
         public bool FreeToPlay { get; set; }
         public decimal Price { get; set; }
         public bool IsMultiplayer { get; set; }
+        public bool IsDeleted { get; set; }
+        public string? ImageUrl { get; set; }
         public List<string> Categories { get; set; } = new List<string>();
         public List<string> AvailableInPlans { get; set; } = new List<string>();
     }
@@ -55,6 +57,9 @@ namespace PSstore.DTOs
         public decimal? Price { get; set; }
 
         public bool? IsMultiplayer { get; set; }
+
+        [MaxLength(2000)]
+        public string? ImageUrl { get; set; }
     }
 
     // Game with access info for user

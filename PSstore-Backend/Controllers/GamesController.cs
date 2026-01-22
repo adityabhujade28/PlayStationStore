@@ -27,6 +27,41 @@ namespace PSstore.Controllers
             return Ok(games);
         }
 
+        /// <summary>
+        /// Get paginated games with optional filtering and sorting
+        /// Recommended endpoint for browsing games with pagination support
+        /// </summary>
+        [HttpGet("paged")]
+        [Authorize]
+        public async Task<ActionResult<PagedResponse<GameDTO>>> GetPagedGames(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] Guid? categoryId = null,
+            [FromQuery] bool? freeToPlayOnly = null,
+            [FromQuery] bool includeDeleted = false,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string sortDirection = "asc",
+            [FromQuery] Guid? userId = null)
+        {
+            _logger.LogInformation("Fetching paginated games. Page: {PageNumber}, Size: {PageSize}", pageNumber, pageSize);
+
+            var query = new GamePaginationQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SearchTerm = searchTerm,
+                CategoryId = categoryId,
+                FreeToPlayOnly = freeToPlayOnly,
+                IncludeDeleted = includeDeleted,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            };
+
+            var pagedGames = await _gameService.GetPagedGamesAsync(query, userId);
+            return Ok(pagedGames);
+        }
+
         [HttpGet("{id}")]
         [Authorize]
         public async Task<ActionResult<GameDTO>> GetGameById(Guid id, [FromQuery] Guid? userId = null)
@@ -64,11 +99,49 @@ namespace PSstore.Controllers
             return Ok(games);
         }
 
+        /// <summary>
+        /// Search games with pagination
+        /// Recommended endpoint for paginated search results
+        /// </summary>
+        [HttpGet("search/paged")]
+        [Authorize]
+        public async Task<ActionResult<PagedResponse<GameDTO>>> SearchGamesPaged(
+            [FromQuery] string query,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] Guid? userId = null)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+                return BadRequest(new { message = "Search query is required." });
+
+            _logger.LogInformation("Searching games with query: {Query}, Page: {PageNumber}, Size: {PageSize}", query, pageNumber, pageSize);
+            
+            var pagedResults = await _gameService.GetPagedSearchResultsAsync(query, pageNumber, pageSize, userId);
+            return Ok(pagedResults);
+        }
+
         [HttpGet("category/{categoryId}")]
         public async Task<ActionResult<IEnumerable<GameDTO>>> GetGamesByCategory(Guid categoryId, [FromQuery] Guid? userId = null)
         {
             var games = await _gameService.GetGamesByCategoryAsync(categoryId, userId);
             return Ok(games);
+        }
+
+        /// <summary>
+        /// Get games by category with pagination
+        /// Recommended endpoint for paginated category browsing
+        /// </summary>
+        [HttpGet("category/{categoryId}/paged")]
+        public async Task<ActionResult<PagedResponse<GameDTO>>> GetGamesByCategoryPaged(
+            Guid categoryId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] Guid? userId = null)
+        {
+            _logger.LogInformation("Fetching games by category {CategoryId} with pagination. Page: {PageNumber}, Size: {PageSize}", categoryId, pageNumber, pageSize);
+            
+            var pagedGames = await _gameService.GetPagedGamesByCategoryAsync(categoryId, pageNumber, pageSize, userId);
+            return Ok(pagedGames);
         }
 
         [HttpGet("free-to-play")]

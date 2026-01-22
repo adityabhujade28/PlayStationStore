@@ -141,6 +141,7 @@ namespace PSstore.Services
                 FreeToPlay = game.FreeToPlay,
                 Price = price,
                 IsMultiplayer = game.IsMultiplayer,
+                ImageUrl = game.ImageUrl,
                 CanAccess = accessResult.CanAccess,
                 AccessType = accessResult.AccessType
             };
@@ -176,6 +177,7 @@ namespace PSstore.Services
             if (updateGameDTO.FreeToPlay.HasValue) game.FreeToPlay = updateGameDTO.FreeToPlay.Value;
             if (updateGameDTO.Price.HasValue) game.BasePrice = updateGameDTO.Price.Value;
             if (updateGameDTO.IsMultiplayer.HasValue) game.IsMultiplayer = updateGameDTO.IsMultiplayer.Value;
+            if (updateGameDTO.ImageUrl != null) game.ImageUrl = updateGameDTO.ImageUrl;
 
             _gameRepository.Update(game);
             await _gameRepository.SaveChangesAsync();
@@ -290,8 +292,91 @@ namespace PSstore.Services
                 ReleaseDate = game.ReleaseDate,
                 FreeToPlay = game.FreeToPlay,
                 Price = price,
-                IsMultiplayer = game.IsMultiplayer
+                IsMultiplayer = game.IsMultiplayer,
+                IsDeleted = game.IsDeleted,
+                ImageUrl = game.ImageUrl
             };
+        }
+
+        /// <summary>
+        /// Get paginated games with support for filtering, searching, and sorting
+        /// Optimized to only load requested page of games and resolve country pricing
+        /// </summary>
+        public async Task<PagedResponse<GameDTO>> GetPagedGamesAsync(GamePaginationQuery query, Guid? userId = null)
+        {
+            // Get paginated games from repository
+            var pagedGames = await _gameRepository.GetPagedGamesAsync(query);
+
+            // Get user's country for pricing
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+
+            // Convert to DTOs efficiently
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in pagedGames.Items)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+
+            return new PagedResponse<GameDTO>(gameDtos, pagedGames.TotalCount, pagedGames.PageNumber, pagedGames.PageSize);
+        }
+
+        /// <summary>
+        /// Get paginated games by category
+        /// Optimized for category browsing with pagination
+        /// </summary>
+        public async Task<PagedResponse<GameDTO>> GetPagedGamesByCategoryAsync(Guid categoryId, int pageNumber, int pageSize, Guid? userId = null)
+        {
+            // Get paginated games from repository
+            var pagedGames = await _gameRepository.GetPagedGamesByCategoryAsync(categoryId, pageNumber, pageSize);
+
+            // Get user's country for pricing
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+
+            // Convert to DTOs efficiently
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in pagedGames.Items)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+
+            return new PagedResponse<GameDTO>(gameDtos, pagedGames.TotalCount, pagedGames.PageNumber, pagedGames.PageSize);
+        }
+
+        /// <summary>
+        /// Get paginated search results
+        /// Optimized for search with pagination
+        /// </summary>
+        public async Task<PagedResponse<GameDTO>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize, Guid? userId = null)
+        {
+            // Get paginated search results from repository
+            var pagedGames = await _gameRepository.GetPagedSearchResultsAsync(searchTerm, pageNumber, pageSize);
+
+            // Get user's country for pricing
+            Guid? countryId = null;
+            if (userId.HasValue)
+            {
+                var user = await _userRepository.GetByIdAsync(userId.Value);
+                countryId = user?.CountryId;
+            }
+
+            // Convert to DTOs efficiently
+            var gameDtos = new List<GameDTO>();
+            foreach (var game in pagedGames.Items)
+            {
+                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
+            }
+
+            return new PagedResponse<GameDTO>(gameDtos, pagedGames.TotalCount, pagedGames.PageNumber, pagedGames.PageSize);
         }
     }
 }

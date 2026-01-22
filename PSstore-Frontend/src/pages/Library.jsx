@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
+import Pagination from '../components/Pagination';
 import styles from './Library.module.css';
 import apiClient from '../utils/apiClient';
 
@@ -14,12 +15,43 @@ function Library() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userCurrency, setUserCurrency] = useState('INR');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(12);
+  const [paginatedData, setPaginatedData] = useState({
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 12,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false
+  });
 
   useEffect(() => {
     fetchLibrary();
     fetchSubscriptions();
     fetchUserCurrency();
   }, []);
+
+  useEffect(() => {
+    if (games.length > 0) {
+      // Paginate the games client-side or fetch from server
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedGames = games.slice(startIndex, endIndex);
+      const totalPages = Math.ceil(games.length / pageSize);
+
+      setPaginatedData({
+        items: paginatedGames,
+        totalCount: games.length,
+        pageNumber: currentPage,
+        pageSize: pageSize,
+        totalPages: totalPages,
+        hasNextPage: currentPage < totalPages,
+        hasPreviousPage: currentPage > 1
+      });
+    }
+  }, [currentPage, games, pageSize]);
 
   const fetchUserCurrency = async () => {
     try {
@@ -82,6 +114,7 @@ function Library() {
                   publisher: gameDetails.publishedBy || 'Unknown',
                   releaseDate: gameDetails.releaseDate,
                   isMultiplayer: gameDetails.isMultiplayer,
+                  imageUrl: gameDetails.imageUrl,
                   accessType: game.accessType,
                   message: game.message,
                   purchasedOn: game.purchasedOn
@@ -163,6 +196,11 @@ function Library() {
     if (activeTab === 'subscription') return false; // Don't show games in subscription tab
     return true;
   });
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const showSubscriptions = activeTab === 'all' || activeTab === 'subscription';
 
@@ -297,10 +335,14 @@ function Library() {
                 <h2 className={styles.sectionTitle}>Your Games</h2>
               )}
               <div className={styles.gamesGrid}>
-                {filteredGames.map((game) => (
+                {paginatedData.items.map((game) => (
                   <div key={game.gameId} className={styles.gameCard}>
                     <div className={styles.gameImage}>
-                      <div className={styles.placeholder}>🎮</div>
+                      {game.imageUrl ? (
+                        <img src={game.imageUrl} alt={game.name} className={styles.image} />
+                      ) : (
+                        <div className={styles.placeholder}>🎮</div>
+                      )}
                       <div className={styles.accessBadge}>
                         {game.accessType === 'PURCHASED' && '✓ Owned'}
                         {game.accessType === 'FREE' && '🎮 Free'}
@@ -327,6 +369,16 @@ function Library() {
                   </div>
                 ))}
               </div>
+              
+              {/* Pagination Controls */}
+              <Pagination
+                currentPage={paginatedData.pageNumber}
+                totalPages={paginatedData.totalPages}
+                hasNextPage={paginatedData.hasNextPage}
+                hasPreviousPage={paginatedData.hasPreviousPage}
+                onPageChange={handlePageChange}
+                isLoading={loading}
+              />
             </>
           )}
         </>

@@ -17,6 +17,7 @@ function AdminGameForm() {
         releaseDate: '',
         freeToPlay: false,
         isMultiplayer: false,
+        imageUrl: '',
         categoryIds: [] // TODO: Implement category selection
     });
 
@@ -42,6 +43,7 @@ function AdminGameForm() {
                     releaseDate: data.releaseDate ? data.releaseDate.split('T')[0] : '',
                     freeToPlay: data.freeToPlay,
                     isMultiplayer: data.isMultiplayer,
+                    imageUrl: data.imageUrl || '',
                     categoryIds: []
                 });
             } else {
@@ -144,6 +146,32 @@ function AdminGameForm() {
                         value={formData.releaseDate}
                         onChange={handleChange}
                     />
+                </div>
+
+                <div className={styles.formGroup}>
+                    <label className={styles.label}>Image URL</label>
+                    <input
+                        type="text"
+                        name="imageUrl"
+                        className={styles.input}
+                        value={formData.imageUrl}
+                        onChange={handleChange}
+                        placeholder="/game_images/Game_Name.jpg"
+                    />
+                    {formData.imageUrl && (
+                        <div style={{ marginTop: '1rem' }}>
+                            <img 
+                                src={formData.imageUrl} 
+                                alt="Game Preview" 
+                                style={{ 
+                                    maxWidth: '200px', 
+                                    maxHeight: '150px', 
+                                    borderRadius: '4px',
+                                    border: '1px solid #444'
+                                }} 
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className={styles.formGroup}>

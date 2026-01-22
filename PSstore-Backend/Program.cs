@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog(); // Use Serilog for logging
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(); 
 
 // Configure SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>

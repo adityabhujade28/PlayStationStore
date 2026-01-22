@@ -24,6 +24,22 @@ namespace PSstore.Interfaces
         Task<IEnumerable<GamePricingDTO>> GetGamePricingAsync(Guid gameId);
         Task<GamePricingDTO> UpdateGamePriceAsync(Guid gameCountryId, decimal newPrice);
         Task<GamePricingDTO> AddGamePriceAsync(CreateGamePricingDTO pricingDTO);
+
+        // Pagination Methods
+        /// <summary>
+        /// Get paginated games with support for filtering, searching, and sorting
+        /// </summary>
+        Task<PagedResponse<GameDTO>> GetPagedGamesAsync(GamePaginationQuery query, Guid? userId = null);
+
+        /// <summary>
+        /// Get paginated games by category
+        /// </summary>
+        Task<PagedResponse<GameDTO>> GetPagedGamesByCategoryAsync(Guid categoryId, int pageNumber, int pageSize, Guid? userId = null);
+
+        /// <summary>
+        /// Get paginated search results
+        /// </summary>
+        Task<PagedResponse<GameDTO>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize, Guid? userId = null);
     }
 
     public interface IPurchaseService
@@ -32,6 +48,11 @@ namespace PSstore.Interfaces
         Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(Guid userId);
         Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
         Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(Guid purchaseId);
+
+        /// <summary>
+        /// Get paginated purchase history for a user
+        /// </summary>
+        Task<PagedResponse<PurchaseHistoryDTO>> GetPagedUserPurchaseHistoryAsync(Guid userId, int pageNumber, int pageSize);
     }
 
     public interface ISubscriptionService
@@ -81,6 +102,11 @@ namespace PSstore.Interfaces
         
         // Admin Methods
         Task<IEnumerable<UserDTO>> GetAllUsersAsync();
+
+        /// <summary>
+        /// Get paginated users with optional filtering
+        /// </summary>
+        Task<PagedResponse<UserDTO>> GetPagedUsersAsync(UserPaginationQuery query);
     }
     public interface ICategoryService
     {

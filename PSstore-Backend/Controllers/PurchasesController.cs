@@ -36,6 +36,20 @@ namespace PSstore.Controllers
             return Ok(purchases);
         }
 
+        /// <summary>
+        /// Get paginated purchase history for a user
+        /// Recommended endpoint for user library with pagination support
+        /// </summary>
+        [HttpGet("user/{userId}/paged")]
+        public async Task<ActionResult<PagedResponse<PurchaseHistoryDTO>>> GetUserPurchaseHistoryPaged(
+            Guid userId,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var pagedPurchases = await _purchaseService.GetPagedUserPurchaseHistoryAsync(userId, pageNumber, pageSize);
+            return Ok(pagedPurchases);
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<PurchaseResponseDTO>> GetPurchaseDetails(Guid id)
         {

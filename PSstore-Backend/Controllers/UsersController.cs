@@ -49,6 +49,38 @@ namespace PSstore.Controllers
             return Ok(users);
         }
 
+        /// <summary>
+        /// Get paginated users with optional filtering and sorting
+        /// Recommended endpoint for admin user management with pagination
+        /// </summary>
+        [HttpGet("paged")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<PagedResponse<UserDTO>>> GetPagedUsers(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? searchTerm = null,
+            [FromQuery] Guid? countryId = null,
+            [FromQuery] bool includeDeleted = false,
+            [FromQuery] string? sortBy = null,
+            [FromQuery] string sortDirection = "asc")
+        {
+            _logger.LogInformation("Fetching paginated users. Page: {PageNumber}, Size: {PageSize}", pageNumber, pageSize);
+
+            var query = new UserPaginationQuery
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SearchTerm = searchTerm,
+                CountryId = countryId,
+                IncludeDeleted = includeDeleted,
+                SortBy = sortBy,
+                SortDirection = sortDirection
+            };
+
+            var pagedUsers = await _userService.GetPagedUsersAsync(query);
+            return Ok(pagedUsers);
+        }
+
         [HttpPost]
         public async Task<ActionResult<UserDTO>> CreateUser([FromBody] CreateUserDTO createUserDTO)
         {
