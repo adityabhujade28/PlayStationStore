@@ -4,6 +4,7 @@ import { formatPrice } from '../utils/currency';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import Navbar from '../components/Navbar';
+import LazyImage from '../components/LazyImage';
 import Toast from '../components/Toast'; // Import Toast
 import styles from './GameDetails.module.css';
 import apiClient from '../utils/apiClient';
@@ -145,7 +146,7 @@ function GameDetails() {
             <div className={styles.imageSection}>
               <div className={styles.mainImage}>
                 {game.imageUrl ? (
-                  <img src={game.imageUrl} alt={game.gameName} className={styles.gameImage} />
+                  <LazyImage src={game.imageUrl} alt={game.gameName} className={styles.imageWrapper} />
                 ) : (
                   <div className={styles.imagePlaceholder}>🎮</div>
                 )}

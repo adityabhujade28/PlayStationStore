@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { formatPrice } from '../utils/currency';
+import LazyImage from './LazyImage';
 import styles from './GameCard.module.css';
 
 function GameCard({ game, currency = 'INR' }) {
@@ -14,7 +15,7 @@ function GameCard({ game, currency = 'INR' }) {
       <div className={styles.imageContainer}>
         {game.freeToPlay && <span className={styles.freeBadge}>FREE</span>}
         {game.imageUrl ? (
-          <img src={game.imageUrl} alt={game.gameName} className={styles.image} />
+          <LazyImage src={game.imageUrl} alt={game.gameName} className={styles.imageWrapper} />
         ) : (
           <div className={styles.placeholder}>🎮</div>
         )}

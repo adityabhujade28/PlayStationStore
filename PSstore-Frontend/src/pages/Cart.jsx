@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/currency';
+import LazyImage from '../components/LazyImage';
 import styles from './Cart.module.css';
 import apiClient from '../utils/apiClient';
 
@@ -106,7 +107,7 @@ function Cart() {
             <div key={item.cartItemId} className={styles.cartItem}>
               <div className={styles.itemImage}>
                 {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.gameName} className={styles.image} />
+                  <LazyImage src={item.imageUrl} alt={item.gameName} className={styles.imageWrapper} />
                 ) : (
                   <div className={styles.placeholder}>🎮</div>
                 )}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
 import Pagination from '../components/Pagination';
+import LazyImage from '../components/LazyImage';
 import styles from './Library.module.css';
 import apiClient from '../utils/apiClient';
 
@@ -339,7 +340,7 @@ function Library() {
                   <div key={game.gameId} className={styles.gameCard}>
                     <div className={styles.gameImage}>
                       {game.imageUrl ? (
-                        <img src={game.imageUrl} alt={game.name} className={styles.image} />
+                        <LazyImage src={game.imageUrl} alt={game.name} className={styles.imageWrapper} />
                       ) : (
                         <div className={styles.placeholder}>🎮</div>
                       )}
