@@ -1,35 +1,16 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace PSstore.DTOs
 {
-    // Admin login
-    public class AdminLoginDTO
-    {
-        [Required]
-        [EmailAddress]
-        public string AdminEmail { get; set; } = string.Empty;
-
-        [Required]
-        public string AdminPassword { get; set; } = string.Empty;
-    }
-
-    // Admin response
-    public class AdminResponseDTO
+    public class AdminDTO
     {
         public Guid AdminId { get; set; }
+        public string AdminName { get; set; } = string.Empty;
         public string AdminEmail { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
-
-    // Create admin
-    public class CreateAdminDTO
+    public class DashboardStatsDTO
     {
-        [Required]
-        [EmailAddress]
-        public string AdminEmail { get; set; } = string.Empty;
-
-        [Required]
-        [MinLength(8)]
-        public string AdminPassword { get; set; } = string.Empty;
+        public int TotalUsers { get; set; }
+        public int TotalGames { get; set; }
+        public int ActiveSubscriptions { get; set; }
     }
 }

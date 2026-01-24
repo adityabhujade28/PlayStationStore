@@ -48,6 +48,8 @@ namespace PSstore.Services
                     CartItemId = item.CartItemId,
                     GameId = item.GameId,
                     GameName = item.Game?.GameName ?? "Unknown",
+                    Publisher = item.Game?.PublishedBy,
+                    ImageUrl = item.Game?.ImageUrl,
                     Quantity = item.Quantity,
                     UnitPrice = item.UnitPrice,
                     TotalPrice = item.TotalPrice
@@ -134,6 +136,8 @@ namespace PSstore.Services
                 CartItemId = existingItem.CartItemId,
                 GameId = existingItem.GameId,
                 GameName = game.GameName,
+                Publisher = game.PublishedBy,
+                ImageUrl = game.ImageUrl,
                 Quantity = existingItem.Quantity,
                 UnitPrice = existingItem.UnitPrice,
                 TotalPrice = existingItem.TotalPrice

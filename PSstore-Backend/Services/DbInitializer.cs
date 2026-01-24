@@ -2,6 +2,7 @@ using PSstore.Data;
 using PSstore.Models;
 using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
+using Bogus;
 
 namespace PSstore.Services;
 
@@ -10,10 +11,11 @@ public static class DbInitializer
     public static async Task InitializeAsync(AppDbContext context)
     {
         // Check if database is already seeded
-        if (await context.Regions.AnyAsync())
+        // Check if database is already seeded (Regions only, we might need to seed Admin later)
+        bool isDataSeeded = await context.Regions.AnyAsync();
+
+        if (!isDataSeeded)
         {
-            return; // Database already seeded
-        }
 
         // Use fixed Guids for reference data (easier testing)
         var asiaId = Guid.Parse("10000000-0000-0000-0000-000000000001");
@@ -168,10 +170,11 @@ public static class DbInitializer
         };
         context.Games.AddRange(games);
         await context.SaveChangesAsync();
-
-        // Seed GameCountries (pricing for each game in each country)
+        // Initialize collections for legacy logic
+        var allGames = games.ToList(); 
+        var gameList = games.ToList();
         var gameCountries = new List<GameCountry>();
-        foreach (var game in games)
+        foreach (var game in allGames)
         {
             if (game.BasePrice.HasValue)
             {
@@ -197,8 +200,10 @@ public static class DbInitializer
         context.GameCountries.AddRange(gameCountries);
 
         // Seed GameCategories (categorize games)
+        // Seed GameCategories for Random Games
         var gameCategories = new List<GameCategory>();
-        var gameList = games.ToList();
+        // Note: The fixed games are already categorized in the first block or existing DB.
+        // We only categorize the *new* randomGames here.
 
         // God of War Ragnarök - Action, Adventure
         gameCategories.Add(new GameCategory { GameId = gameList[0].GameId, CategoryId = actionId });
@@ -276,15 +281,16 @@ public static class DbInitializer
         gameCategories.Add(new GameCategory { GameId = gameList[18].GameId, CategoryId = actionId });
         gameCategories.Add(new GameCategory { GameId = gameList[18].GameId, CategoryId = adventureId });
 
-        // Minecraft - Adventure, Platformer
-        gameCategories.Add(new GameCategory { GameId = gameList[19].GameId, CategoryId = adventureId });
-        gameCategories.Add(new GameCategory { GameId = gameList[19].GameId, CategoryId = platformerId });
+        // Remove manual categorization of fixed games (it's in the first block or done)
+        // ... (Skipping manual mapping lines which were inside the first if block initially)
+        
+
 
         context.GameCategories.AddRange(gameCategories);
 
         // Seed GameSubscriptions (map games to subscription tiers)
         var gameSubscriptions = new List<GameSubscription>();
-
+        
         // Essential tier games (first 5 games)
         for (int i = 0; i < 5 && i < gameList.Count; i++)
         {
@@ -307,79 +313,118 @@ public static class DbInitializer
             {
                 gameSubscriptions.Add(new GameSubscription { GameId = game.GameId, SubscriptionId = premiumId });
             }
-        }
+        } 
+
 
         context.GameSubscriptions.AddRange(gameSubscriptions);
 
-        // Seed Test Users (5 users with known password: Pass@123)
-        var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Pass@123", workFactor: 12);
-        var testUsers = new[]
+    } // End of if (!isDataSeeded)
+
+        // --- EXTENDED SEEDING: Check for Random Data Expansion ---
+        // Runs even if Regions exist, to fill up games if needed.
+        if (await context.Games.CountAsync() < 30)
         {
-            new User
+             Console.WriteLine("⚡ Expanding Seed Data with Random Games & Users...");
+             
+             // Fetch IDs needed for relationships
+             var essentialId = await context.SubscriptionPlans.Where(s => s.SubscriptionType == "Essential").Select(s => s.SubscriptionId).FirstOrDefaultAsync();
+             var extraId = await context.SubscriptionPlans.Where(s => s.SubscriptionType == "Extra").Select(s => s.SubscriptionId).FirstOrDefaultAsync();
+             var premiumId = await context.SubscriptionPlans.Where(s => s.SubscriptionType == "Premium").Select(s => s.SubscriptionId).FirstOrDefaultAsync();
+             
+             var indiaId = await context.Countries.Where(c => c.CountryCode == "IN").Select(c => c.CountryId).FirstOrDefaultAsync();
+             var ukId = await context.Countries.Where(c => c.CountryCode == "GB").Select(c => c.CountryId).FirstOrDefaultAsync();
+             
+             var allCatIds = await context.Categories.Select(c => c.CategoryId).ToListAsync();
+             var countriesIds = new[] { indiaId, ukId };
+
+            // 1. Generate Random Games
+             var gameFaker = new Faker<Game>()
+                .RuleFor(g => g.GameId, f => Guid.NewGuid())
+                .RuleFor(g => g.GameName, f => $"{f.Commerce.ProductAdjective()} {f.Hacker.Noun()}") 
+                .RuleFor(g => g.PublishedBy, f => f.Company.CompanyName())
+                .RuleFor(g => g.ReleaseDate, f => f.Date.Past(5))
+                .RuleFor(g => g.FreeToPlay, f => f.Random.Bool(0.1f))
+                .RuleFor(g => g.BasePrice, (f, g) => g.FreeToPlay ? null : decimal.Parse(f.Commerce.Price(1000, 5000)))
+                .RuleFor(g => g.IsMultiplayer, f => f.Random.Bool());
+
+            var randomGames = gameFaker.Generate(30);
+            randomGames.ForEach(g => g.GameName = g.GameName + " " + g.GameId.ToString().Substring(0, 4));
+            
+            context.Games.AddRange(randomGames);
+            await context.SaveChangesAsync();
+
+            // 2. Pricing for Random Games
+            var gameCountries = new List<GameCountry>();
+            foreach (var game in randomGames)
             {
-                UserId = Guid.NewGuid(),
-                UserName = "John Doe",
-                UserEmail = "john@example.com",
-                UserPassword = hashedPassword,
-                Age = 25,
-                CountryId = indiaId,
-                CreatedAt = DateTime.UtcNow
-            },
-            new User
-            {
-                UserId = Guid.NewGuid(),
-                UserName = "Jane Smith",
-                UserEmail = "jane@example.com",
-                UserPassword = hashedPassword,
-                Age = 30,
-                CountryId = ukId,
-                CreatedAt = DateTime.UtcNow
-            },
-            new User
-            {
-                UserId = Guid.NewGuid(),
-                UserName = "Raj Kumar",
-                UserEmail = "raj@example.com",
-                UserPassword = hashedPassword,
-                Age = 28,
-                CountryId = indiaId,
-                CreatedAt = DateTime.UtcNow
-            },
-            new User
-            {
-                UserId = Guid.NewGuid(),
-                UserName = "Emma Wilson",
-                UserEmail = "emma@example.com",
-                UserPassword = hashedPassword,
-                Age = 22,
-                CountryId = ukId,
-                CreatedAt = DateTime.UtcNow
-            },
-            new User
-            {
-                UserId = Guid.NewGuid(),
-                UserName = "Priya Sharma",
-                UserEmail = "priya@example.com",
-                UserPassword = hashedPassword,
-                Age = 27,
-                CountryId = indiaId,
-                CreatedAt = DateTime.UtcNow
+                if (game.BasePrice.HasValue)
+                {
+                    gameCountries.Add(new GameCountry { GameCountryId = Guid.NewGuid(), GameId = game.GameId, CountryId = indiaId, Price = game.BasePrice.Value });
+                    gameCountries.Add(new GameCountry { GameCountryId = Guid.NewGuid(), GameId = game.GameId, CountryId = ukId, Price = Math.Round(game.BasePrice.Value / 100m, 2) });
+                }
             }
-        };
-        context.Users.AddRange(testUsers);
+            context.GameCountries.AddRange(gameCountries);
 
-        await context.SaveChangesAsync();
+            // 3. Categories for Random Games
+            var gameCategories = new List<GameCategory>();
+            if (allCatIds.Any())
+            {
+                 foreach (var randomGame in randomGames)
+                {
+                    var randomCatIds = allCatIds.OrderBy(x => Guid.NewGuid()).Take(new Random().Next(1, 3)).ToList();
+                    foreach (var catId in randomCatIds)
+                    {
+                        gameCategories.Add(new GameCategory { GameId = randomGame.GameId, CategoryId = catId });
+                    }
+                }
+                context.GameCategories.AddRange(gameCategories);
+            }
 
-        Console.WriteLine("✅ Database seeded successfully with Guid-based data!");
-        Console.WriteLine($"   - {regions.Length} Regions");
-        Console.WriteLine($"   - {countries.Length} Countries");
-        Console.WriteLine($"   - {categories.Length} Categories");
-        Console.WriteLine($"   - {subscriptions.Length} Subscription Plans");
-        Console.WriteLine($"   - {subscriptionPlanCountries.Count} Subscription Pricing Options");
-        Console.WriteLine($"   - {games.Length} Games");
-        Console.WriteLine($"   - {gameCountries.Count} Game Pricing Entries");
-        Console.WriteLine($"   - {gameCategories.Count} Game-Category Mappings");
-        Console.WriteLine($"   - {gameSubscriptions.Count} Game-Subscription Mappings");
-        Console.WriteLine($"   - {testUsers.Length} Test Users (Password: Pass@123)");
+            // 4. Subscriptions for Random Games (Add all to Premium)
+            var gameSubscriptions = new List<GameSubscription>();
+            if (premiumId != Guid.Empty)
+            {
+                foreach (var rGame in randomGames)
+                {
+                    gameSubscriptions.Add(new GameSubscription { GameId = rGame.GameId, SubscriptionId = premiumId });
+                }
+                context.GameSubscriptions.AddRange(gameSubscriptions);
+            }
+
+            // 5. Random Users
+            var defaultHash = BCrypt.Net.BCrypt.HashPassword("Pass@123", workFactor: 12);
+            var userFaker = new Faker<User>()
+                .RuleFor(u => u.UserId, f => Guid.NewGuid())
+                .RuleFor(u => u.UserName, f => f.Internet.UserName())
+                .RuleFor(u => u.UserEmail, (f, u) => f.Internet.Email(u.UserName))
+                .RuleFor(u => u.UserPassword, defaultHash)
+                .RuleFor(u => u.Age, f => f.Random.Int(18, 60))
+                .RuleFor(u => u.CountryId, f => f.PickRandom(countriesIds))
+                .RuleFor(u => u.CreatedAt, f => f.Date.Past(2));
+
+            var randomUsers = userFaker.Generate(25);
+            context.Users.AddRange(randomUsers);
+            
+            await context.SaveChangesAsync();
+            Console.WriteLine($"✅ Seeded {randomGames.Count} extra games and {randomUsers.Count} extra users.");
+        }
+            
+
+
+        // Seed Default Admin (Runs independently of other data)
+        if (!await context.Admins.AnyAsync())
+        {
+            var adminUser = new Admin
+            {
+                AdminId = Guid.NewGuid(),
+                AdminEmail = "admin@store.com",
+                AdminPassword = BCrypt.Net.BCrypt.HashPassword("Admin@123", workFactor: 12),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+            context.Admins.Add(adminUser);
+            await context.SaveChangesAsync();
+            Console.WriteLine("✅ Default Admin seeded: admin@store.com / Admin@123");
+        }
     }
 }

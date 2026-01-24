@@ -1,4 +1,5 @@
 using PSstore.Models;
+using PSstore.DTOs;
 
 namespace PSstore.Interfaces
 {
@@ -11,6 +12,12 @@ namespace PSstore.Interfaces
         Task<bool> EmailExistsAsync(string email);
         Task SoftDeleteAsync(Guid userId);
         Task<bool> RestoreAsync(Guid userId);
+        Task<IEnumerable<User>> GetAllIncludingDeletedAsync();
+        
+        /// <summary>
+        /// Get paginated users with optional filtering
+        /// </summary>
+        Task<PagedResponse<User>> GetPagedUsersAsync(UserPaginationQuery query);
     }
 
     public interface IGameRepository : IRepository<Game>
@@ -25,6 +32,21 @@ namespace PSstore.Interfaces
         Task SoftDeleteAsync(Guid gameId);
         Task<bool> RestoreAsync(Guid gameId);
         Task<IEnumerable<Game>> GetAllIncludingDeletedAsync();
+        
+        /// <summary>
+        /// Get paginated games with optional filtering by category, search term, and soft delete
+        /// </summary>
+        Task<PagedResponse<Game>> GetPagedGamesAsync(GamePaginationQuery query);
+        
+        /// <summary>
+        /// Get paginated games by category
+        /// </summary>
+        Task<PagedResponse<Game>> GetPagedGamesByCategoryAsync(Guid categoryId, int pageNumber, int pageSize);
+        
+        /// <summary>
+        /// Get paginated search results
+        /// </summary>
+        Task<PagedResponse<Game>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize);
     }
 
     public interface ICategoryRepository : IRepository<Category>
@@ -43,6 +65,7 @@ namespace PSstore.Interfaces
     public interface ICountryRepository : IRepository<Country>
     {
         Task<Country?> GetByCodeAsync(string countryCode);
+        Task<Country?> GetByNameAsync(string countryName);
         Task<IEnumerable<Country>> GetCountriesByRegionAsync(Guid regionId);
     }
 
@@ -50,6 +73,7 @@ namespace PSstore.Interfaces
     {
         Task<GameCountry?> GetGamePricingAsync(Guid gameId, Guid countryId);
         Task<IEnumerable<GameCountry>> GetGamePricesByCountryAsync(Guid countryId);
+        Task<IEnumerable<GameCountry>> GetPricesByGameIdAsync(Guid gameId);
     }
 
     public interface IUserPurchaseGameRepository : IRepository<UserPurchaseGame>
@@ -58,6 +82,11 @@ namespace PSstore.Interfaces
         Task<UserPurchaseGame?> GetPurchaseDetailsAsync(Guid purchaseId);
         Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
         Task<IEnumerable<Guid>> GetPurchasedGameIdsAsync(Guid userId);
+        
+        /// <summary>
+        /// Get paginated purchase history for a user
+        /// </summary>
+        Task<PagedResponse<UserPurchaseGame>> GetPagedUserPurchasesAsync(Guid userId, int pageNumber, int pageSize);
     }
 
     public interface ISubscriptionPlanRepository : IRepository<SubscriptionPlan>
@@ -71,6 +100,7 @@ namespace PSstore.Interfaces
     {
         Task<SubscriptionPlanCountry?> GetPlanCountryDetailsAsync(Guid planCountryId);
         Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId);
+        Task<IEnumerable<SubscriptionPlanCountry>> GetBySubscriptionIdAsync(Guid subscriptionId);
     }
 
     public interface IUserSubscriptionPlanRepository : IRepository<UserSubscriptionPlan>
@@ -79,6 +109,7 @@ namespace PSstore.Interfaces
         Task<UserSubscriptionPlan?> GetActiveSubscriptionAsync(Guid userId);
         Task<bool> HasActiveSubscriptionAsync(Guid userId);
         Task<IEnumerable<UserSubscriptionPlan>> GetExpiredSubscriptionsAsync();
+        Task<int> CountActiveSubscriptionsAsync();
     }
 
     public interface ICartRepository : IRepository<Cart>
@@ -101,5 +132,11 @@ namespace PSstore.Interfaces
         Task<bool> EmailExistsAsync(string email);
         Task SoftDeleteAsync(Guid adminId);
         Task<bool> RestoreAsync(Guid adminId);
+    }
+    public interface IGameSubscriptionRepository : IRepository<GameSubscription>
+    {
+        Task<GameSubscription?> GetAsync(Guid subscriptionId, Guid gameId);
+        Task<IEnumerable<GameSubscription>> GetBySubscriptionIdAsync(Guid subscriptionId);
+        Task<bool> ExistsAsync(Guid subscriptionId, Guid gameId);
     }
 }

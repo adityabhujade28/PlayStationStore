@@ -3,19 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/currency';
+import LazyImage from '../components/LazyImage';
 import styles from './Cart.module.css';
 import apiClient from '../utils/apiClient';
 
 function Cart() {
   const { getDecodedToken, isAuthenticated } = useAuth();
-  // Fixed: use cartItems and fetchCartItems from context
   const { cartItems, fetchCartItems, removeFromCart, loading } = useCart();
   const navigate = useNavigate();
   const [userCurrency, setUserCurrency] = useState('INR');
   const [processingCheckout, setProcessingCheckout] = useState(false);
 
   useEffect(() => {
-    // Fixed: calling fetchCartItems
     fetchCartItems();
     fetchUserCurrency();
   }, [isAuthenticated]);
@@ -107,7 +106,11 @@ function Cart() {
           {cartItems.map((item) => (
             <div key={item.cartItemId} className={styles.cartItem}>
               <div className={styles.itemImage}>
-                <div className={styles.placeholder}>🎮</div>
+                {item.imageUrl ? (
+                  <LazyImage src={item.imageUrl} alt={item.gameName} className={styles.imageWrapper} />
+                ) : (
+                  <div className={styles.placeholder}>🎮</div>
+                )}
               </div>
               <div className={styles.itemDetails}>
                 <h3 className={styles.itemName}>{item.gameName}</h3>

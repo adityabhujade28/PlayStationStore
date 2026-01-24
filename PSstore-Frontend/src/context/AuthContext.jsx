@@ -82,6 +82,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const adminLogin = async (email, password) => {
+    try {
+      const response = await apiClient.post('/admin/login', {
+        userEmail: email,
+        userPassword: password,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Admin login failed');
+      }
+
+      const data = await response.json();
+
+      // Store token (admins might share same storage key or different? 
+      // Using same 'token' key means you can't be logged in as User AND Admin on same browser tab easily.
+      // For simplicity in this app, we'll share 'token'.
+      localStorage.removeItem('user');
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  };
+
   const signup = async (userName, email, password, age, countryId) => {
     try {
       const response = await apiClient.post('/users', {
@@ -118,6 +145,7 @@ export const AuthProvider = ({ children }) => {
     token,
     getDecodedToken,
     login,
+    adminLogin,
     signup,
     logout,
     isAuthenticated,

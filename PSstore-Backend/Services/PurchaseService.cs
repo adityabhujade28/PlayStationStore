@@ -135,5 +135,27 @@ namespace PSstore.Services
                 Message = "Purchase found."
             };
         }
+
+        /// <summary>
+        /// Get paginated purchase history for a user
+        /// Optimized for user library with pagination
+        /// </summary>
+        public async Task<PagedResponse<PurchaseHistoryDTO>> GetPagedUserPurchaseHistoryAsync(Guid userId, int pageNumber, int pageSize)
+        {
+            // Get paginated purchases from repository
+            var pagedPurchases = await _purchaseRepository.GetPagedUserPurchasesAsync(userId, pageNumber, pageSize);
+
+            // Convert to DTOs
+            var purchaseDtos = pagedPurchases.Items.Select(p => new PurchaseHistoryDTO
+            {
+                PurchaseId = p.PurchaseId,
+                GameId = p.GameId,
+                GameName = p.Game?.GameName ?? "Unknown",
+                PurchasePrice = p.PurchasePrice,
+                PurchaseDate = p.PurchaseDate
+            }).ToList();
+
+            return new PagedResponse<PurchaseHistoryDTO>(purchaseDtos, pagedPurchases.TotalCount, pagedPurchases.PageNumber, pagedPurchases.PageSize);
+        }
     }
 }

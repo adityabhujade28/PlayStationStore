@@ -138,6 +138,40 @@ namespace PSstore.Services
             return true;
         }
 
+        // Admin Methods
+        public async Task<IEnumerable<UserDTO>> GetAllUsersAsync()
+        {
+            var users = await _userRepository.GetAllIncludingDeletedAsync();
+            var userDtos = new List<UserDTO>();
+
+            foreach (var user in users)
+            {
+                var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(user.UserId);
+                userDtos.Add(MapToUserDTO(user, hasSubscription));
+            }
+            return userDtos;
+        }
+
+        /// <summary>
+        /// Get paginated users with optional filtering
+        /// Optimized for admin user management with pagination support
+        /// </summary>
+        public async Task<PagedResponse<UserDTO>> GetPagedUsersAsync(UserPaginationQuery query)
+        {
+            // Get paginated users from repository
+            var pagedUsers = await _userRepository.GetPagedUsersAsync(query);
+
+            // Convert to DTOs and check subscriptions efficiently
+            var userDtos = new List<UserDTO>();
+            foreach (var user in pagedUsers.Items)
+            {
+                var hasSubscription = await _subscriptionRepository.HasActiveSubscriptionAsync(user.UserId);
+                userDtos.Add(MapToUserDTO(user, hasSubscription));
+            }
+
+            return new PagedResponse<UserDTO>(userDtos, pagedUsers.TotalCount, pagedUsers.PageNumber, pagedUsers.PageSize);
+        }
+
         private static UserDTO MapToUserDTO(User user, bool hasActiveSubscription)
         {
             return new UserDTO
@@ -148,7 +182,8 @@ namespace PSstore.Services
                 Age = user.Age,
                 SubscriptionStatus = hasActiveSubscription,
                 CreatedAt = user.CreatedAt,
-                CountryId = user.CountryId
+                CountryId = user.CountryId,
+                IsDeleted = user.IsDeleted
             };
         }
     }

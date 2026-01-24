@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PSstore.Data;
+using PSstore.DTOs;
 using PSstore.Interfaces;
 using PSstore.Models;
 
@@ -17,7 +18,7 @@ namespace PSstore.Repositories
         public async Task<User?> GetUserWithRegionAsync(Guid userId)
         {
             return await _dbSet
-                .Include(u => u.Country)
+                .Include(u => u.Country!)
                     .ThenInclude(c => c.Region)
                 .FirstOrDefaultAsync(u => u.UserId == userId);
         }
@@ -66,6 +67,68 @@ namespace PSstore.Repositories
                 return true;
             }
             return false;
+        }
+        public async Task<IEnumerable<User>> GetAllIncludingDeletedAsync()
+        {
+            return await _dbSet.IgnoreQueryFilters().ToListAsync();
+        }
+
+        public async Task<PagedResponse<User>> GetPagedUsersAsync(UserPaginationQuery query)
+        {
+            IQueryable<User> queryable = _dbSet;
+
+            // Include deleted if requested
+            if (query.IncludeDeleted)
+            {
+                queryable = queryable.IgnoreQueryFilters();
+            }
+
+            // Filter by country if specified
+            if (query.CountryId.HasValue)
+            {
+                queryable = queryable.Where(u => u.CountryId == query.CountryId);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var searchTerm = query.SearchTerm.ToLower();
+                queryable = queryable.Where(u => 
+                    u.UserName.ToLower().Contains(searchTerm) || 
+                    u.UserEmail.ToLower().Contains(searchTerm));
+            }
+
+            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                queryable = query.SortBy.ToLower() switch
+                {
+                    "email" => query.SortDirection == "asc" 
+                        ? queryable.OrderBy(u => u.UserEmail) 
+                        : queryable.OrderByDescending(u => u.UserEmail),
+                    "createdat" => query.SortDirection == "asc" 
+                        ? queryable.OrderBy(u => u.CreatedAt) 
+                        : queryable.OrderByDescending(u => u.CreatedAt),
+                    "name" or _ => query.SortDirection == "asc" 
+                        ? queryable.OrderBy(u => u.UserName) 
+                        : queryable.OrderByDescending(u => u.UserName),
+                };
+            }
+            else
+            {
+                queryable = queryable.OrderBy(u => u.UserName);
+            }
+
+            // Get total count
+            int totalCount = await queryable.CountAsync();
+
+            // Apply pagination
+            var users = await queryable
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync();
+
+            return new PagedResponse<User>(users, totalCount, query.PageNumber, query.PageSize);
         }
     }
 
@@ -152,6 +215,116 @@ namespace PSstore.Repositories
         public async Task<IEnumerable<Game>> GetAllIncludingDeletedAsync()
         {
             return await _dbSet.IgnoreQueryFilters().ToListAsync();
+        }
+
+        public async Task<PagedResponse<Game>> GetPagedGamesAsync(GamePaginationQuery query)
+        {
+            IQueryable<Game> queryable = _dbSet
+                .Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Include(g => g.GameSubscriptions)
+                    .ThenInclude(gs => gs.SubscriptionPlan);
+
+            // Include deleted if requested
+            if (query.IncludeDeleted)
+            {
+                queryable = queryable.IgnoreQueryFilters();
+            }
+
+            // Filter by category if specified
+            if (query.CategoryId.HasValue)
+            {
+                queryable = queryable.Where(g => 
+                    g.GameCategories.Any(gc => gc.CategoryId == query.CategoryId));
+            }
+
+            // Filter free to play only if specified
+            if (query.FreeToPlayOnly.HasValue && query.FreeToPlayOnly.Value)
+            {
+                queryable = queryable.Where(g => g.FreeToPlay);
+            }
+
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(query.SearchTerm))
+            {
+                var searchTerm = query.SearchTerm.ToLower();
+                queryable = queryable.Where(g => 
+                    g.GameName.ToLower().Contains(searchTerm) || 
+                    (g.PublishedBy != null && g.PublishedBy.ToLower().Contains(searchTerm)));
+            }
+
+            // Apply sorting
+            if (!string.IsNullOrWhiteSpace(query.SortBy))
+            {
+                queryable = query.SortBy.ToLower() switch
+                {
+                    "name" => query.SortDirection == "asc"
+                        ? queryable.OrderBy(g => g.GameName)
+                        : queryable.OrderByDescending(g => g.GameName),
+                    "releasedate" => query.SortDirection == "asc"
+                        ? queryable.OrderBy(g => g.ReleaseDate)
+                        : queryable.OrderByDescending(g => g.ReleaseDate),
+                    "createdat" => query.SortDirection == "asc"
+                        ? queryable.OrderBy(g => g.CreatedAt)
+                        : queryable.OrderByDescending(g => g.CreatedAt),
+                    _ => queryable.OrderBy(g => g.GameName)
+                };
+            }
+            else
+            {
+                queryable = queryable.OrderBy(g => g.GameName);
+            }
+
+            // Get total count
+            int totalCount = await queryable.CountAsync();
+
+            // Apply pagination
+            var games = await queryable
+                .Skip((query.PageNumber - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<Game>(games, totalCount, query.PageNumber, query.PageSize);
+        }
+
+        public async Task<PagedResponse<Game>> GetPagedGamesByCategoryAsync(Guid categoryId, int pageNumber, int pageSize)
+        {
+            var queryable = _dbSet
+                .Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Where(g => g.GameCategories.Any(gc => gc.CategoryId == categoryId))
+                .OrderBy(g => g.GameName);
+
+            int totalCount = await queryable.CountAsync();
+
+            var games = await queryable
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<Game>(games, totalCount, pageNumber, pageSize);
+        }
+
+        public async Task<PagedResponse<Game>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize)
+        {
+            var queryable = _dbSet
+                .Include(g => g.GameCategories)
+                    .ThenInclude(gc => gc.Category)
+                .Where(g => g.GameName.Contains(searchTerm) || 
+                           (g.PublishedBy != null && g.PublishedBy.Contains(searchTerm)))
+                .OrderBy(g => g.GameName);
+
+            int totalCount = await queryable.CountAsync();
+
+            var games = await queryable
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<Game>(games, totalCount, pageNumber, pageSize);
         }
     }
 
@@ -240,6 +413,24 @@ namespace PSstore.Repositories
                 .Select(upg => upg.GameId)
                 .ToListAsync();
         }
+
+        public async Task<PagedResponse<UserPurchaseGame>> GetPagedUserPurchasesAsync(Guid userId, int pageNumber, int pageSize)
+        {
+            var queryable = _dbSet
+                .Include(upg => upg.Game)
+                .Where(upg => upg.UserId == userId)
+                .OrderByDescending(upg => upg.PurchaseDate);
+
+            int totalCount = await queryable.CountAsync();
+
+            var purchases = await queryable
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .AsNoTracking()
+                .ToListAsync();
+
+            return new PagedResponse<UserPurchaseGame>(purchases, totalCount, pageNumber, pageSize);
+        }
     }
 
     public class SubscriptionPlanRepository : BaseRepository<SubscriptionPlan>, ISubscriptionPlanRepository
@@ -285,11 +476,19 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
             .FirstOrDefaultAsync(spc => spc.SubscriptionPlanCountryId == planCountryId);
     }
 
-    public async Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId)
-    {
-        return await _dbSet
-            .Include(spc => spc.SubscriptionPlan)
-            .Where(spc => spc.CountryId == countryId)
+        public async Task<IEnumerable<SubscriptionPlanCountry>> GetPlansByCountryAsync(Guid countryId)
+        {
+            return await _dbSet
+                .Include(spc => spc.SubscriptionPlan)
+                .Where(spc => spc.CountryId == countryId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<SubscriptionPlanCountry>> GetBySubscriptionIdAsync(Guid subscriptionId)
+        {
+            return await _dbSet
+                .Include(spc => spc.Country)
+                .Where(spc => spc.SubscriptionId == subscriptionId)
                 .ToListAsync();
         }
     }
@@ -335,6 +534,12 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
             return await _dbSet
                 .Where(usp => usp.PlanEndDate < now)
                 .ToListAsync();
+        }
+
+        public async Task<int> CountActiveSubscriptionsAsync()
+        {
+            var now = DateTime.UtcNow;
+            return await _dbSet.CountAsync(usp => usp.PlanStartDate <= now && usp.PlanEndDate >= now);
         }
     }
 
@@ -442,6 +647,13 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
                 .FirstOrDefaultAsync(c => c.CountryCode == countryCode);
         }
 
+        public async Task<Country?> GetByNameAsync(string countryName)
+        {
+            return await _dbSet
+                .Include(c => c.Region)
+                .FirstOrDefaultAsync(c => c.CountryName.ToLower() == countryName.ToLower());
+        }
+
         public async Task<IEnumerable<Country>> GetCountriesByRegionAsync(Guid regionId)
         {
             return await _dbSet
@@ -469,6 +681,39 @@ public class SubscriptionPlanCountryRepository : BaseRepository<SubscriptionPlan
                 .Include(gc => gc.Game)
                 .Where(gc => gc.CountryId == countryId)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<GameCountry>> GetPricesByGameIdAsync(Guid gameId)
+        {
+            return await _dbSet
+                .Include(gc => gc.Country)
+                .Where(gc => gc.GameId == gameId)
+                .ToListAsync();
+        }
+    }
+
+
+    // GameSubscription Repository
+    public class GameSubscriptionRepository : BaseRepository<GameSubscription>, IGameSubscriptionRepository
+    {
+        public GameSubscriptionRepository(AppDbContext context) : base(context) { }
+
+        public async Task<GameSubscription?> GetAsync(Guid subscriptionId, Guid gameId)
+        {
+            return await _dbSet.FirstOrDefaultAsync(gs => gs.SubscriptionId == subscriptionId && gs.GameId == gameId);
+        }
+
+        public async Task<IEnumerable<GameSubscription>> GetBySubscriptionIdAsync(Guid subscriptionId)
+        {
+            return await _dbSet
+                .Include(gs => gs.Game)
+                .Where(gs => gs.SubscriptionId == subscriptionId)
+                .ToListAsync();
+        }
+
+        public async Task<bool> ExistsAsync(Guid subscriptionId, Guid gameId)
+        {
+            return await _dbSet.AnyAsync(gs => gs.SubscriptionId == subscriptionId && gs.GameId == gameId);
         }
     }
 }
