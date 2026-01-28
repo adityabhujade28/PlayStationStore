@@ -48,7 +48,23 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 const apiClient = {
-  get: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'GET' }),
+  get: (endpoint, options = {}) => {
+    // Add cache-busting parameter to prevent browser caching
+    const separator = endpoint.includes('?') ? '&' : '?';
+    const cacheBuster = `${separator}_t=${Date.now()}`;
+    const endpointWithCacheBuster = endpoint + cacheBuster;
+    
+    return apiFetch(endpointWithCacheBuster, { 
+      ...options, 
+      method: 'GET',
+      headers: {
+        ...options.headers,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
+    });
+  },
   
   post: (endpoint, body, options = {}) => apiFetch(endpoint, { 
     ...options, 

@@ -9,44 +9,52 @@ namespace PSstore.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
+        private readonly ILogger<AdminController> _logger;
 
-        public AdminController(IAdminService adminService)
+        public AdminController(IAdminService adminService, ILogger<AdminController> logger)
         {
             _adminService = adminService;
+            _logger = logger;
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDTO>> Login([FromBody] LoginDTO loginDTO)
         {
-            var response = await _adminService.LoginAsync(loginDTO);
-            if (response == null)
+            _logger.LogInformation("Admin login attempt for email: {Email}", loginDTO.UserEmail);
+            try
             {
-                return Unauthorized(new { message = "Invalid email or password." });
+                var response = await _adminService.LoginAsync(loginDTO);
+                if (response == null)
+                {
+                    _logger.LogWarning("Admin login failed for email: {Email}. Invalid credentials.", loginDTO.UserEmail);
+                    return Unauthorized(new { message = "Invalid email or password." });
+                }
+
+                _logger.LogInformation("Admin login successful for email: {Email}", loginDTO.UserEmail);
+                return Ok(response);
             }
-
-            return Ok(response);
-        }
-
-        [HttpGet("me")]
-        public async Task<ActionResult<AdminDTO>> GetMe()
-        {
-            var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid adminId))
+            catch (Exception ex)
             {
-                return Unauthorized();
+                _logger.LogError(ex, "Error during admin login for email: {Email}", loginDTO.UserEmail);
+                throw;
             }
-
-            var admin = await _adminService.GetAdminByIdAsync(adminId);
-            if (admin == null) return NotFound();
-
-            return Ok(admin);
         }
 
         [HttpGet("stats")]
         public async Task<ActionResult<DashboardStatsDTO>> GetStats()
         {
-            var stats = await _adminService.GetDashboardStatsAsync();
-            return Ok(stats);
+            _logger.LogInformation("Fetching dashboard statistics");
+            try
+            {
+                var stats = await _adminService.GetDashboardStatsAsync();
+                _logger.LogInformation("Dashboard statistics retrieved successfully");
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving dashboard statistics");
+                throw;
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import styles from './LazyImage.module.css';
 
 function LazyImage({ src, alt, className = '', placeholderSize = 'small' }) {
@@ -7,6 +7,9 @@ function LazyImage({ src, alt, className = '', placeholderSize = 'small' }) {
   const imgRef = useRef(null);
 
   useEffect(() => {
+    // Don't set up observer if already loaded
+    if (isLoaded) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -28,17 +31,19 @@ function LazyImage({ src, alt, className = '', placeholderSize = 'small' }) {
         observer.unobserve(imgRef.current);
       }
     };
-  }, []);
+  }, [isLoaded]);
 
   return (
     <div ref={imgRef} className={`${styles.lazyImageContainer} ${className}`}>
-      {isVisible ? (
+      {isVisible && src ? (
         <img
           src={src}
           alt={alt}
           className={`${styles.image} ${isLoaded ? styles.loaded : styles.loading}`}
           onLoad={() => setIsLoaded(true)}
-          onError={() => setIsLoaded(true)} // Mark as loaded even on error
+          onError={() => setIsLoaded(true)}
+          loading="lazy"
+          decoding="async"
         />
       ) : (
         <div className={styles.placeholder}>
@@ -49,4 +54,4 @@ function LazyImage({ src, alt, className = '', placeholderSize = 'small' }) {
   );
 }
 
-export default LazyImage;
+export default memo(LazyImage);

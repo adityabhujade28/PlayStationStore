@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useQuery } from '@tanstack/react-query';
 import styles from './Navbar.module.css';
 import apiClient from '../utils/apiClient';
 
@@ -9,28 +10,23 @@ function Navbar() {
   const { token, getDecodedToken, logout } = useAuth();
   const { cartItemCount } = useCart();
   const navigate = useNavigate();
-  const [userName, setUserName] = useState('User');
 
-  useEffect(() => {
-    // Decode token to get userId and fetch user details
-    const decoded = getDecodedToken();
-    if (decoded) {
-      fetchUserName(decoded.userId);
-    }
-  }, [token]);
+  const decoded = getDecodedToken();
+  const userId = decoded?.userId;
 
-  const fetchUserName = async (userId) => {
-    try {
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: async () => {
       const response = await apiClient.get(`/users/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+    cacheTime: 10 * 60 * 1000,
+  });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUserName(data.userName);
-      }
-    } catch (err) {
-      console.error('Failed to fetch user name:', err);
-    }
-  };
+  const userName = useMemo(() => user?.userName || 'User', [user]);
 
   return (
     <nav className={styles.navbar}>

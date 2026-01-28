@@ -96,9 +96,6 @@ export const AuthProvider = ({ children }) => {
 
       const data = await response.json();
 
-      // Store token (admins might share same storage key or different? 
-      // Using same 'token' key means you can't be logged in as User AND Admin on same browser tab easily.
-      // For simplicity in this app, we'll share 'token'.
       localStorage.removeItem('user');
       localStorage.setItem('token', data.token);
       setToken(data.token);

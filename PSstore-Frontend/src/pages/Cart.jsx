@@ -1,81 +1,101 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
 import { formatPrice } from '../utils/currency';
 import LazyImage from '../components/LazyImage';
 import styles from './Cart.module.css';
 import apiClient from '../utils/apiClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 function Cart() {
   const { getDecodedToken, isAuthenticated } = useAuth();
-  const { cartItems, fetchCartItems, removeFromCart, loading } = useCart();
   const navigate = useNavigate();
-  const [userCurrency, setUserCurrency] = useState('INR');
+  const queryClient = useQueryClient();
   const [processingCheckout, setProcessingCheckout] = useState(false);
 
-  useEffect(() => {
-    fetchCartItems();
-    fetchUserCurrency();
-  }, [isAuthenticated]);
+  const decoded = getDecodedToken();
+  const userId = decoded?.userId;
 
-  const fetchUserCurrency = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+  // Fetch user data + currency
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/users/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch user');
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-      if (!userId) return;
+  const { data: country } = useQuery({
+    queryKey: ['country', user?.countryId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/countries/${user.countryId}`);
+      if (!res.ok) throw new Error('Failed to fetch country');
+      return res.json();
+    },
+    enabled: !!user?.countryId,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
 
-      const userResponse = await apiClient.get(`/users/${userId}`);
-
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-
-        if (userData.countryId) {
-          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
-
-          if (countryResponse.ok) {
-            const countryData = await countryResponse.json();
-            setUserCurrency(countryData.currency);
-          }
-        }
+  // Fetch cart items
+  const { data: cartData = { items: [], totalPrice: 0, taxRate: 0 }, isLoading, error } = useQuery({
+    queryKey: ['cart', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('User not authenticated');
+      const res = await apiClient.get(`/cart/user/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch cart');
+      const data = await res.json();
+      // Normalize response - ensure it has items array
+      if (Array.isArray(data)) {
+        return { items: data, totalPrice: 0, taxRate: 0 };
       }
-    } catch (err) {
-      console.error('Failed to fetch user currency:', err);
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 2 * 60 * 1000, // Cart: 2 min cache (frequent changes)
+    refetchOnWindowFocus: false,
+  });
+
+  const cartItems = cartData.items || [];
+
+  // Remove item mutation
+  const { mutate: removeFromCart, isPending: isRemoving } = useMutation({
+    mutationFn: async (cartItemId) => {
+      const res = await apiClient.delete(`/cart/user/${userId}/items/${cartItemId}`);
+      if (!res.ok) throw new Error('Failed to remove item');
+      return res.status === 204 ? { success: true } : res.json();
+    },
+    onSuccess: () => {
+      // Invalidate cart query to refetch updated cart
+      queryClient.invalidateQueries({ queryKey: ['cart', userId] });
+    },
+    onError: (error) => {
+      alert(error.message || 'Failed to remove item from cart');
     }
-  };
+  });
 
-  const handleRemoveItem = async (cartItemId) => {
-    const result = await removeFromCart(cartItemId);
-    if (!result.success) {
-      alert(result.error || 'Failed to remove item from cart');
+  // Checkout mutation
+  const { mutate: checkout } = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post(`/cart/user/${userId}/checkout`, {});
+      if (!res.ok) throw new Error('Checkout failed');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Invalidate cart after successful checkout
+      queryClient.invalidateQueries({ queryKey: ['cart', userId] });
+      navigate('/checkout-success', { state: { purchase: data } });
+    },
+    onError: (error) => {
+      alert(error.message || 'Checkout failed');
     }
-  };
+  });
 
-  const handleCheckout = async () => {
-    setProcessingCheckout(true);
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+  const userCurrency = country?.currencyCode || 'INR';
 
-      const response = await apiClient.post(`/cart/user/${userId}/checkout`, {});
-
-      if (response.ok) {
-        const data = await response.json();
-        navigate('/checkout-success', { state: { purchase: data } });
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Checkout failed');
-      }
-    } catch (err) {
-      alert('Checkout failed: ' + err.message);
-    } finally {
-      setProcessingCheckout(false);
-    }
-  };
-
-  // Fixed rendering condition using cartItems
-  if (!loading && (!cartItems || cartItems.length === 0)) {
+  if (!isLoading && (!cartItems || cartItems.length === 0)) {
     return (
       <div className={styles.container}>
         <div className={styles.emptyCart}>
@@ -91,7 +111,7 @@ function Cart() {
   }
 
   const subtotal = cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
-  const tax = cartItems[0]?.taxRate ? (subtotal * cartItems[0].taxRate) : 0;
+  const tax = cartItems[0]?.taxRate ? (subtotal * cartItems[0].taxRate) : cartData.taxRate ? (subtotal * cartData.taxRate) : 0;
   const total = subtotal + tax;
 
   return (
@@ -122,8 +142,8 @@ function Cart() {
               </div>
               <button
                 className={styles.removeButton}
-                onClick={() => handleRemoveItem(item.cartItemId)}
-                disabled={loading}
+                onClick={() => removeFromCart(item.cartItemId)}
+                disabled={isRemoving}
               >
                 ✕
               </button>
@@ -148,8 +168,8 @@ function Cart() {
           </div>
           <button
             className={styles.checkoutButton}
-            onClick={handleCheckout}
-            disabled={processingCheckout || loading}
+            onClick={() => checkout()}
+            disabled={processingCheckout || isLoading}
           >
             {processingCheckout ? 'Processing...' : 'Proceed to Checkout'}
           </button>

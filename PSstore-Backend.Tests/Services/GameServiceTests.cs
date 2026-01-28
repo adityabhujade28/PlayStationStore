@@ -14,6 +14,7 @@ namespace PSstore_Backend.Tests.Services
         private readonly Mock<IEntitlementService> _mockEntitlementService;
         private readonly Mock<IGameCountryRepository> _mockGameCountryRepo;
         private readonly Mock<IUserRepository> _mockUserRepo;
+        private readonly Mock<ICountryRepository> _mockCountryRepo;
         private readonly GameService _gameService;
         private readonly Faker _faker;
 
@@ -23,12 +24,14 @@ namespace PSstore_Backend.Tests.Services
             _mockEntitlementService = new Mock<IEntitlementService>();
             _mockGameCountryRepo = new Mock<IGameCountryRepository>();
             _mockUserRepo = new Mock<IUserRepository>();
+            _mockCountryRepo = new Mock<ICountryRepository>();
 
             _gameService = new GameService(
                 _mockGameRepo.Object,
                 _mockEntitlementService.Object,
                 _mockGameCountryRepo.Object,
-                _mockUserRepo.Object
+                _mockUserRepo.Object,
+                _mockCountryRepo.Object
             );
 
             _faker = new Faker();

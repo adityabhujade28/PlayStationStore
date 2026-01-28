@@ -13,18 +13,20 @@ namespace PSstore.Services
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId)
-        {
-            var category = await _categoryRepository.GetByIdAsync(categoryId);
-            return category != null ? MapToCategoryDTO(category) : null;
-        }
-
         public async Task<IEnumerable<CategoryDTO>> GetAllCategoriesAsync(bool includeDeleted = false)
         {
             // Note: includeDeleted parameter not implemented in repository yet
             var categories = await _categoryRepository.GetAllAsync();
 
             return categories.Select(MapToCategoryDTO);
+        }
+
+        public async Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId)
+        {
+            var category = await _categoryRepository.GetByIdAsync(categoryId);
+            if (category == null) return null;
+
+            return MapToCategoryDTO(category);
         }
 
         public async Task<CategoryDTO> CreateCategoryAsync(CreateCategoryDTO createCategoryDTO)

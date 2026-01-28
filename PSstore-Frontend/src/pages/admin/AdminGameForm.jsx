@@ -9,6 +9,7 @@ function AdminGameForm() {
     const isEditing = !!id;
     const [pricing, setPricing] = useState([]);
     const [newPriceData, setNewPriceData] = useState({ countryId: '', price: 0 });
+    const [countries, setCountries] = useState([]);
 
     const [formData, setFormData] = useState({
         gameName: '',
@@ -18,17 +19,43 @@ function AdminGameForm() {
         freeToPlay: false,
         isMultiplayer: false,
         imageUrl: '',
-        categoryIds: [] // TODO: Implement category selection
+        categoryIds: [], // TODO: Implement category selection
+        pricing: [] // Per-country pricing
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        fetchCountries();
         if (isEditing) {
             fetchGameDetails();
         }
     }, [id]);
+
+    const fetchCountries = async () => {
+        try {
+            const response = await apiClient.get('/countries');
+            if (response.ok) {
+                const data = await response.json();
+                setCountries(data);
+                // Initialize pricing for all countries when creating new game
+                if (!isEditing) {
+                    setFormData(prev => ({
+                        ...prev,
+                        pricing: data.map(c => ({
+                            countryId: c.countryId,
+                            price: '',
+                            countryName: c.countryName,
+                            currency: c.currency
+                        }))
+                    }));
+                }
+            }
+        } catch (err) {
+            console.error('Error fetching countries:', err);
+        }
+    };
 
     const fetchGameDetails = async () => {
         try {
@@ -44,17 +71,30 @@ function AdminGameForm() {
                     freeToPlay: data.freeToPlay,
                     isMultiplayer: data.isMultiplayer,
                     imageUrl: data.imageUrl || '',
-                    categoryIds: []
+                    categoryIds: [],
+                    pricing: [] // Will be populated below
                 });
             } else {
                 setError('Failed to load game details');
             }
 
-            // Fetch pricing if not free to play (though admin might want to configure it anyway, usually only if paid)
-            // But we fetch always to show grid
+            // Fetch pricing data and map it to the same format used for creation
             const pricingRes = await apiClient.get(`/games/${id}/pricing`);
             if (pricingRes.ok) {
-                setPricing(await pricingRes.json());
+                const pricingData = await pricingRes.json();
+                setPricing(pricingData);
+                
+                // Map pricing data to formData format for editing
+                setFormData(prev => ({
+                    ...prev,
+                    pricing: pricingData.map(p => ({
+                        countryId: p.countryId,
+                        gameCountryId: p.gameCountryId, // Include for updates
+                        price: p.price,
+                        countryName: p.countryName,
+                        currency: p.currency
+                    }))
+                }));
             }
 
         } catch (err) {
@@ -79,10 +119,26 @@ function AdminGameForm() {
 
         try {
             const payload = {
-                ...formData,
-                price: parseFloat(formData.price) || 0,
-                releaseDate: formData.releaseDate ? new Date(formData.releaseDate).toISOString() : null
+                gameName: formData.gameName,
+                publishedBy: formData.publishedBy,
+                price: parseFloat(formData.price) || 0, // Keep for backward compatibility
+                releaseDate: formData.releaseDate ? new Date(formData.releaseDate).toISOString() : null,
+                freeToPlay: formData.freeToPlay,
+                isMultiplayer: formData.isMultiplayer,
+                imageUrl: formData.imageUrl,
+                categoryIds: formData.categoryIds,
+                // Add pricing data for game creation
+                pricing: formData.pricing
+                    ? formData.pricing
+                        .filter(p => p.price !== '' && p.price !== null)
+                        .map(p => ({
+                            countryId: p.countryId,
+                            price: parseFloat(p.price)
+                        }))
+                    : []
             };
+
+            console.log("Submitting payload:", JSON.stringify(payload, null, 2));
 
             let response;
             if (isEditing) {
@@ -134,6 +190,7 @@ function AdminGameForm() {
                         className={styles.input}
                         value={formData.publishedBy}
                         onChange={handleChange}
+                        required
                     />
                 </div>
 
@@ -145,6 +202,7 @@ function AdminGameForm() {
                         className={styles.input}
                         value={formData.releaseDate}
                         onChange={handleChange}
+                        required
                     />
                 </div>
 
@@ -157,36 +215,69 @@ function AdminGameForm() {
                         value={formData.imageUrl}
                         onChange={handleChange}
                         placeholder="/game_images/Game_Name.jpg"
+                        required
                     />
                     {formData.imageUrl && (
                         <div style={{ marginTop: '1rem' }}>
-                            <img 
-                                src={formData.imageUrl} 
-                                alt="Game Preview" 
-                                style={{ 
-                                    maxWidth: '200px', 
-                                    maxHeight: '150px', 
+                            <img
+                                src={formData.imageUrl}
+                                alt="Game Preview"
+                                style={{
+                                    maxWidth: '200px',
+                                    maxHeight: '150px',
                                     borderRadius: '4px',
                                     border: '1px solid #444'
-                                }} 
+                                }}
                             />
                         </div>
                     )}
                 </div>
 
-                <div className={styles.formGroup}>
-                    <label className={styles.label}>Price (₹)</label>
-                    <input
-                        type="number"
-                        name="price"
-                        className={styles.input}
-                        value={formData.price}
-                        onChange={handleChange}
-                        disabled={formData.freeToPlay}
-                        min="0"
-                        step="0.01"
-                    />
-                </div>
+                {/* Per-Country Pricing */}
+                {!formData.freeToPlay && formData.pricing && formData.pricing.length > 0 && (
+                    <div style={{ marginBottom: '2rem', padding: '1.5rem', background: '#1a1a1a', borderRadius: '8px', border: '1px solid #333' }}>
+                        <h3 style={{ marginTop: 0, marginBottom: '1rem', color: '#4db8ff' }}>Regional Pricing</h3>
+                        {formData.pricing.map((p, index) => (
+                            <div key={p.countryId} className={styles.formGroup}>
+                                <label className={styles.label}>
+                                    {p.countryName} ({p.currency})
+                                </label>
+                                <input
+                                    type="number"
+                                    className={styles.input}
+                                    value={p.price}
+                                    onChange={(e) => {
+                                        const newPricing = [...formData.pricing];
+                                        // Allow empty string or valid number (including 0)
+                                        const val = e.target.value;
+                                        newPricing[index].price = val === '' ? '' : parseFloat(val);
+                                        setFormData(prev => ({ ...prev, pricing: newPricing }));
+                                    }}
+                                    onBlur={async (e) => {
+                                        // If editing, update the price in backend immediately
+                                        if (isEditing && p.gameCountryId) {
+                                            const val = parseFloat(e.target.value);
+                                            if (!isNaN(val)) {
+                                                try {
+                                                    const res = await apiClient.put(`/games/pricing/${p.gameCountryId}`, val);
+                                                    if (res.ok) {
+                                                        console.log('Price updated for', p.countryName);
+                                                    }
+                                                } catch (err) {
+                                                    console.error('Failed to update price:', err);
+                                                }
+                                            }
+                                        }
+                                    }}
+                                    min="0"
+                                    step="0.01"
+                                    placeholder={`Enter price in ${p.currency}`}
+                                    required
+                                />
+                            </div>
+                        ))}
+                    </div>
+                )}
 
                 <div className={styles.checkboxGroup}>
                     <input
@@ -219,101 +310,6 @@ function AdminGameForm() {
                     </button>
                 </div>
             </form>
-
-            {isEditing && !formData.freeToPlay && (
-                <div style={{ marginTop: '3rem', borderTop: '1px solid #444', paddingTop: '2rem' }}>
-                    <h2 style={{ marginBottom: '1rem' }}>Regional Pricing</h2>
-                    <div className={styles.tableContainer}>
-                        <table className={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th>Region / Country</th>
-                                    <th>Currency</th>
-                                    <th>Price</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {pricing.map((p) => (
-                                    <tr key={p.gameCountryId}>
-                                        <td>{p.countryName}</td>
-                                        <td>{p.currency}</td>
-                                        <td>
-                                            <input
-                                                type="number"
-                                                defaultValue={p.price}
-                                                onBlur={async (e) => {
-                                                    const val = parseFloat(e.target.value);
-                                                    if (val !== p.price) {
-                                                        try {
-                                                            const res = await apiClient.put(`/games/pricing/${p.gameCountryId}`, val);
-                                                            if (res.ok) alert('Price updated');
-                                                        } catch (err) { console.error(err); }
-                                                    }
-                                                }}
-                                                style={{ background: '#333', border: '1px solid #555', color: 'white', padding: '5px', width: '100px' }}
-                                            />
-                                        </td>
-                                        <td>
-                                            {/* Delete? Maybe later */}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div style={{ marginTop: '2rem', background: '#252525', padding: '15px', borderRadius: '8px' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.2rem' }}>Add Regional Price</h3>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '0.8rem', marginBottom: '5px' }}>Country ID</label>
-                                <input
-                                    type="text"
-                                    placeholder="Guid"
-                                    value={newPriceData.countryId}
-                                    onChange={(e) => setNewPriceData({ ...newPriceData, countryId: e.target.value })}
-                                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid #555', background: '#333', color: 'white' }}
-                                />
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <label style={{ fontSize: '0.8rem', marginBottom: '5px' }}>Price</label>
-                                <input
-                                    type="number"
-                                    placeholder="0.00"
-                                    value={newPriceData.price}
-                                    onChange={(e) => setNewPriceData({ ...newPriceData, price: e.target.value })}
-                                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid #555', background: '#333', color: 'white' }}
-                                />
-                            </div>
-                            <button
-                                onClick={async () => {
-                                    if (!newPriceData.countryId || !newPriceData.price) return alert('Fill all fields');
-                                    try {
-                                        const res = await apiClient.post('/games/pricing', {
-                                            gameId: id,
-                                            countryId: newPriceData.countryId,
-                                            price: parseFloat(newPriceData.price)
-                                        });
-                                        if (res.ok) {
-                                            const created = await res.json();
-                                            setPricing(prev => [...prev, created]);
-                                            setNewPriceData({ countryId: '', price: 0 });
-                                            alert('Added!');
-                                        } else {
-                                            alert('Failed. Check Country ID.');
-                                        }
-                                    } catch (e) { console.error(e); }
-                                }}
-                                className={styles.saveButton}
-                                style={{ height: '38px', marginTop: 0 }}
-                            >
-                                Add
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

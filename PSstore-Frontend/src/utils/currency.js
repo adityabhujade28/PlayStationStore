@@ -6,7 +6,10 @@ export const getCurrencySymbol = (currencyCode) => {
     'GBP': '£',
     'USD': '$',
     'EUR': '€',
-    'JPY': '¥'
+    'JPY': '¥',
+    'AUD': 'A$',
+    'CAD': 'C$',
+    'CNY': '¥'
   };
   return symbols[currencyCode] || currencyCode;
 };

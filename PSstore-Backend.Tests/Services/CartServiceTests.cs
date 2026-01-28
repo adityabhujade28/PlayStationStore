@@ -59,9 +59,6 @@ namespace PSstore_Backend.Tests.Services
             _mockPurchaseService.Setup(p => p.HasUserPurchasedGameAsync(userId, gameId)).ReturnsAsync(false);
             _mockEntitlementService.Setup(e => e.CanUserAccessGameAsync(userId, gameId)).ReturnsAsync(new GameAccessResultDTO { CanAccess = false });
 
-            // Prepare validation for CalculateCartTotalAsync logic
-            // When CalculateCartTotalAsync is called, it fetches items from repo. 
-            // We simulate that the new item is now in the repo (or we mock the get call to return what we expect)
             var expectedItems = new List<CartItem> 
             { 
                 new CartItem { GameId = gameId, Quantity = 1, UnitPrice = 50m, TotalPrice = 50m } 
@@ -295,7 +292,7 @@ namespace PSstore_Backend.Tests.Services
 
             // Assert
             result.Should().NotBeNull();
-            result.TotalAmount.Should().Be(100m);
+            result!.TotalAmount.Should().Be(100m);
             result.Items.Should().HaveCount(1);
             result.Items.First().GameName.Should().Be("Test Game");
         }

@@ -32,7 +32,7 @@ function GameCard({ game, currency = 'INR' }) {
             <span className={styles.freeText}>Free to Play</span>
           ) : (
             <span className={styles.price}>
-              {game.price ? formatPrice(game.price, currency) : 'Price TBA'}
+              {game.price !== null && game.price !== undefined ? formatPrice(game.price, currency) : 'Price TBA'}
             </span>
           )}
           {game.isMultiplayer && (

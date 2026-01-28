@@ -10,13 +10,15 @@ namespace PSstore.Services
         private readonly IEntitlementService _entitlementService;
         private readonly IGameCountryRepository _gameCountryRepository;
         private readonly IUserRepository _userRepository;
+        private readonly ICountryRepository _countryRepository;
 
-        public GameService(IGameRepository gameRepository, IEntitlementService entitlementService, IGameCountryRepository gameCountryRepository, IUserRepository userRepository)
+        public GameService(IGameRepository gameRepository, IEntitlementService entitlementService, IGameCountryRepository gameCountryRepository, IUserRepository userRepository, ICountryRepository countryRepository)
         {
             _gameRepository = gameRepository;
             _entitlementService = entitlementService;
             _gameCountryRepository = gameCountryRepository;
             _userRepository = userRepository;
+            _countryRepository = countryRepository;
         }
 
         public async Task<GameDTO?> GetGameByIdAsync(Guid gameId, Guid? userId = null)
@@ -147,21 +149,104 @@ namespace PSstore.Services
             };
         }
 
+        /// <summary>
+        /// Creates a new game with region-wise pricing.
+        /// - Region-wise pricing is saved in GameCountries table
+        /// - India (IN) price is used as BasePrice in Games table
+        /// - If India price not available, first price from Pricing array is used
+        /// - If no Pricing array, falls back to the Price field
+        /// - ImageUrl is saved to Games table
+        /// </summary>
         public async Task<GameDTO> CreateGameAsync(CreateGameDTO createGameDTO)
         {
+            // Log incoming data for debugging
+            Console.WriteLine($"[CreateGame] GameName: {createGameDTO.GameName}");
+            Console.WriteLine($"[CreateGame] ImageUrl: {createGameDTO.ImageUrl ?? "NULL"}");
+            Console.WriteLine($"[CreateGame] Pricing Count: {createGameDTO.Pricing?.Count ?? 0}");
+            
+            // Determine BasePrice (Use India price if available from Pricing array)
+            decimal? basePrice = null;
+            
+            if (createGameDTO.Pricing != null && createGameDTO.Pricing.Any())
+            {
+                // Try to find India price first
+                var indiaCountry = await _countryRepository.FirstOrDefaultAsync(c => c.CountryCode == "IN");
+                Console.WriteLine($"[CreateGame] India Country Found: {indiaCountry != null}");
+                
+                if (indiaCountry != null)
+                {
+                    Console.WriteLine($"[CreateGame] India CountryId: {indiaCountry.CountryId}");
+                    var indiaPrice = createGameDTO.Pricing.FirstOrDefault(p => p.CountryId == indiaCountry.CountryId);
+                    
+                    if (indiaPrice != null)
+                    {
+                        basePrice = indiaPrice.Price;
+                        Console.WriteLine($"[CreateGame] Using India Price as BasePrice: {basePrice}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[CreateGame] India price not found in Pricing array");
+                        // Log all country IDs in pricing for debugging
+                        foreach (var p in createGameDTO.Pricing)
+                        {
+                            Console.WriteLine($"[CreateGame] Pricing CountryId: {p.CountryId}, Price: {p.Price}");
+                        }
+                    }
+                }
+                
+                // If India price not found, use first available price as fallback
+                if (!basePrice.HasValue && createGameDTO.Pricing.Any())
+                {
+                    basePrice = createGameDTO.Pricing.First().Price;
+                    Console.WriteLine($"[CreateGame] Using first price as BasePrice fallback: {basePrice}");
+                }
+            }
+            else if (createGameDTO.Price > 0)
+            {
+                // Fallback to the old Price field if no Pricing array provided
+                basePrice = createGameDTO.Price;
+                Console.WriteLine($"[CreateGame] Using legacy Price field as BasePrice: {basePrice}");
+            }
+            else
+            {
+                Console.WriteLine($"[CreateGame] No BasePrice set (free game or no pricing provided)");
+            }
+
             var game = new Game
             {
                 GameName = createGameDTO.GameName,
                 PublishedBy = createGameDTO.PublishedBy,
                 ReleaseDate = createGameDTO.ReleaseDate,
                 FreeToPlay = createGameDTO.FreeToPlay,
-                BasePrice = createGameDTO.Price,
+                BasePrice = basePrice,
                 IsMultiplayer = createGameDTO.IsMultiplayer,
+                ImageUrl = createGameDTO.ImageUrl, // Save image URL to Games table
                 IsDeleted = false
             };
+            
+            Console.WriteLine($"[CreateGame] Game entity created with ImageUrl: {game.ImageUrl ?? "NULL"}");
 
             await _gameRepository.AddAsync(game);
             await _gameRepository.SaveChangesAsync();
+            
+            Console.WriteLine($"[CreateGame] Game saved with ID: {game.GameId}");
+
+            // Add per-country/region-wise pricing - save all to GameCountries table
+            if (createGameDTO.Pricing != null && createGameDTO.Pricing.Any())
+            {
+                foreach (var pricingInput in createGameDTO.Pricing)
+                {
+                    var gameCountry = new GameCountry
+                    {
+                        GameCountryId = Guid.NewGuid(),
+                        GameId = game.GameId,
+                        CountryId = pricingInput.CountryId,
+                        Price = pricingInput.Price
+                    };
+                    await _gameCountryRepository.AddAsync(gameCountry);
+                }
+                await _gameCountryRepository.SaveChangesAsync();
+            }
 
             return await MapToGameDTOAsync(game);
         }
@@ -179,6 +264,7 @@ namespace PSstore.Services
             if (updateGameDTO.IsMultiplayer.HasValue) game.IsMultiplayer = updateGameDTO.IsMultiplayer.Value;
             if (updateGameDTO.ImageUrl != null) game.ImageUrl = updateGameDTO.ImageUrl;
 
+            game.UpdatedAt = DateTime.UtcNow;
             _gameRepository.Update(game);
             await _gameRepository.SaveChangesAsync();
 
