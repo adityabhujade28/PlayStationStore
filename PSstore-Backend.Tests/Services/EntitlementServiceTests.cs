@@ -1,46 +1,26 @@
 using Bogus;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Moq;
-using PSstore.Data;
 using PSstore.DTOs;
-using PSstore.Interfaces;
 using PSstore.Models;
 using PSstore.Services;
+using PSstore_Backend.Tests.Helpers;
 
 namespace PSstore_Backend.Tests.Services
 {
-    public class EntitlementServiceTests
+    public class EntitlementServiceTests : IntegrationTestBase
     {
-        private readonly Mock<IGameRepository> _mockGameRepo;
-        private readonly Mock<IUserPurchaseGameRepository> _mockPurchaseRepo;
-        private readonly Mock<IUserSubscriptionPlanRepository> _mockUserSubRepo;
-        private readonly Mock<ISubscriptionPlanRepository> _mockPlanRepo;
-        private readonly AppDbContext _context;
         private readonly EntitlementService _entitlementService;
-        private readonly Faker _faker;
 
         public EntitlementServiceTests()
         {
-            _mockGameRepo = new Mock<IGameRepository>();
-            _mockPurchaseRepo = new Mock<IUserPurchaseGameRepository>();
-            _mockUserSubRepo = new Mock<IUserSubscriptionPlanRepository>();
-            _mockPlanRepo = new Mock<ISubscriptionPlanRepository>();
-
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-            _context = new AppDbContext(options);
-
             _entitlementService = new EntitlementService(
-                _context,
-                _mockGameRepo.Object,
-                _mockPurchaseRepo.Object,
-                _mockUserSubRepo.Object,
-                _mockPlanRepo.Object
+                Context,
+                GameRepository,
+                UserPurchaseGameRepository,
+                UserSubscriptionPlanRepository,
+                SubscriptionPlanRepository
             );
-
-            _faker = new Faker();
         }
 
         [Fact]
@@ -49,8 +29,6 @@ namespace PSstore_Backend.Tests.Services
             // Arrange
             var userId = Guid.NewGuid();
             var gameId = Guid.NewGuid();
-
-            _mockGameRepo.Setup(r => r.GetByIdAsync(gameId)).ReturnsAsync((Game?)null);
 
             // Act
             var result = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
@@ -67,9 +45,10 @@ namespace PSstore_Backend.Tests.Services
             // Arrange
             var userId = Guid.NewGuid();
             var gameId = Guid.NewGuid();
-            var game = new Game { GameId = gameId, GameName = "Free Game", FreeToPlay = true };
+            var game = new Game { GameId = gameId, GameName = "Free Game", FreeToPlay = true, CreatedAt = DateTime.UtcNow, IsDeleted = false };
 
-            _mockGameRepo.Setup(r => r.GetByIdAsync(gameId)).ReturnsAsync(game);
+            await Context.Games.AddAsync(game);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
@@ -85,21 +64,21 @@ namespace PSstore_Backend.Tests.Services
             // Arrange
             var userId = Guid.NewGuid();
             var gameId = Guid.NewGuid();
-            var game = new Game { GameId = gameId, GameName = "Paid Game", FreeToPlay = false };
+            var game = new Game { GameId = gameId, GameName = "Paid Game", FreeToPlay = false, CreatedAt = DateTime.UtcNow, IsDeleted = false };
             var purchaseDate = DateTime.UtcNow.AddDays(-10);
 
-            _mockGameRepo.Setup(r => r.GetByIdAsync(gameId)).ReturnsAsync(game);
-            _mockPurchaseRepo.Setup(r => r.HasUserPurchasedGameAsync(userId, gameId)).ReturnsAsync(true);
-
-            // Add purchase to InMemory DB for direct context access
-            _context.UserPurchaseGames.Add(new UserPurchaseGame 
+            var purchase = new UserPurchaseGame 
             { 
                 PurchaseId = Guid.NewGuid(), 
                 UserId = userId, 
                 GameId = gameId, 
-                PurchaseDate = purchaseDate 
-            });
-            await _context.SaveChangesAsync();
+                PurchaseDate = purchaseDate,
+                PurchasePrice = 50m
+            };
+
+            await Context.Games.AddAsync(game);
+            await Context.UserPurchaseGames.AddAsync(purchase);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
@@ -117,31 +96,46 @@ namespace PSstore_Backend.Tests.Services
             var userId = Guid.NewGuid();
             var gameId = Guid.NewGuid();
             var subscriptionId = Guid.NewGuid();
-            var game = new Game { GameId = gameId, GameName = "Sub Game", FreeToPlay = false };
+            var planCountryId = Guid.NewGuid();
 
-            _mockGameRepo.Setup(r => r.GetByIdAsync(gameId)).ReturnsAsync(game);
-            _mockPurchaseRepo.Setup(r => r.HasUserPurchasedGameAsync(userId, gameId)).ReturnsAsync(false);
+            var game = new Game { GameId = gameId, GameName = "Sub Game", FreeToPlay = false, CreatedAt = DateTime.UtcNow, IsDeleted = false };
+            
+            var subscriptionPlan = new SubscriptionPlan 
+            { 
+                SubscriptionId = subscriptionId, 
+                SubscriptionType = "Premium"
+            };
 
-            // Create correctly structured UserSubscriptionPlan Model (Not DTO)
+            var planCountry = new SubscriptionPlanCountry
+            {
+                SubscriptionPlanCountryId = planCountryId,
+                SubscriptionId = subscriptionId,
+                CountryId = Guid.NewGuid(),
+                DurationMonths = 12,
+                Price = 60m
+            };
+
             var activeSub = new UserSubscriptionPlan 
             { 
+                UserSubscriptionId = Guid.NewGuid(),
                 UserId = userId,
+                PlanStartDate = DateTime.UtcNow.AddDays(-10),
                 PlanEndDate = DateTime.UtcNow.AddDays(30),
-                SubscriptionPlanCountry = new SubscriptionPlanCountry 
-                { 
-                    SubscriptionId = subscriptionId,
-                    SubscriptionPlan = new SubscriptionPlan { SubscriptionId = subscriptionId, SubscriptionType = "Premium" }
-                }
+                SubscriptionPlanCountryId = planCountryId
             };
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync(activeSub);
 
-            // Add game to subscription plan in InMemory DB
-            _context.GameSubscriptions.Add(new GameSubscription 
+            var gameSubscription = new GameSubscription 
             { 
                 GameId = gameId, 
                 SubscriptionId = subscriptionId 
-            });
-            await _context.SaveChangesAsync();
+            };
+
+            await Context.Games.AddAsync(game);
+            await Context.SubscriptionPlans.AddAsync(subscriptionPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(planCountry);
+            await Context.UserSubscriptionPlans.AddAsync(activeSub);
+            await Context.GameSubscriptions.AddAsync(gameSubscription);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
@@ -158,11 +152,10 @@ namespace PSstore_Backend.Tests.Services
             // Arrange
             var userId = Guid.NewGuid();
             var gameId = Guid.NewGuid();
-            var game = new Game { GameId = gameId, GameName = "Paid Game", FreeToPlay = false };
+            var game = new Game { GameId = gameId, GameName = "Paid Game", FreeToPlay = false, CreatedAt = DateTime.UtcNow, IsDeleted = false };
 
-            _mockGameRepo.Setup(r => r.GetByIdAsync(gameId)).ReturnsAsync(game);
-            _mockPurchaseRepo.Setup(r => r.HasUserPurchasedGameAsync(userId, gameId)).ReturnsAsync(false);
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync((UserSubscriptionPlan?)null);
+            await Context.Games.AddAsync(game);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.CanUserAccessGameAsync(userId, gameId);
@@ -177,8 +170,17 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            _context.UserPurchaseGames.Add(new UserPurchaseGame { UserId = userId, GameId = Guid.NewGuid() });
-            await _context.SaveChangesAsync();
+            var purchase = new UserPurchaseGame 
+            { 
+                PurchaseId = Guid.NewGuid(),
+                UserId = userId, 
+                GameId = Guid.NewGuid(),
+                PurchasePrice = 50m,
+                PurchaseDate = DateTime.UtcNow
+            };
+
+            await Context.UserPurchaseGames.AddAsync(purchase);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.HasAnyEntitlementsAsync(userId);
@@ -192,7 +194,17 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            _mockUserSubRepo.Setup(r => r.HasActiveSubscriptionAsync(userId)).ReturnsAsync(true);
+            var activeSub = new UserSubscriptionPlan
+            {
+                UserSubscriptionId = Guid.NewGuid(),
+                UserId = userId,
+                SubscriptionPlanCountryId = Guid.NewGuid(),
+                PlanStartDate = DateTime.UtcNow.AddDays(-10),
+                PlanEndDate = DateTime.UtcNow.AddDays(30)
+            };
+
+            await Context.UserSubscriptionPlans.AddAsync(activeSub);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.HasAnyEntitlementsAsync(userId);
@@ -206,7 +218,6 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            _mockUserSubRepo.Setup(r => r.HasActiveSubscriptionAsync(userId)).ReturnsAsync(false);
 
             // Act
             var result = await _entitlementService.HasAnyEntitlementsAsync(userId);
@@ -223,49 +234,59 @@ namespace PSstore_Backend.Tests.Services
             var freeGameId = Guid.NewGuid();
             var purchasedGameId = Guid.NewGuid();
             var subGameId = Guid.NewGuid();
-
-            // Mock Data
-            var purchasedGame = new Game { GameId = purchasedGameId, GameName = "Purchased Game" };
-            var freeGame = new Game { GameId = freeGameId, GameName = "Free Game" };
-            var subGame = new Game { GameId = subGameId, GameName = "Sub Game" };
-
-            // 1. Mock Purchased Ids & Dates
-            var purchases = new List<UserPurchaseGame> 
-            { 
-                new UserPurchaseGame { GameId = purchasedGameId, PurchaseDate = DateTime.UtcNow } 
-            };
-            _mockPurchaseRepo.Setup(r => r.GetPurchasedGameIdsAsync(userId)).ReturnsAsync(new List<Guid> { purchasedGameId });
-            _mockPurchaseRepo.Setup(r => r.GetUserPurchasesAsync(userId)).ReturnsAsync(purchases);
-
-            // 2. Mock Free Ids
-            _mockGameRepo.Setup(r => r.GetFreeGameIdsAsync()).ReturnsAsync(new List<Guid> { freeGameId });
-
-            // 3. Mock Subscription Ids
             var subscriptionId = Guid.NewGuid();
-            
-            // Use correct Model here
+            var planCountryId = Guid.NewGuid();
+
+            var purchasedGame = new Game { GameId = purchasedGameId, GameName = "Purchased Game", BasePrice = 50m, CreatedAt = DateTime.UtcNow, IsDeleted = false };
+            var freeGame = new Game { GameId = freeGameId, GameName = "Free Game", FreeToPlay = true, CreatedAt = DateTime.UtcNow, IsDeleted = false };
+            var subGame = new Game { GameId = subGameId, GameName = "Sub Game", BasePrice = 60m, CreatedAt = DateTime.UtcNow, IsDeleted = false };
+
+            var purchase = new UserPurchaseGame 
+            { 
+                PurchaseId = Guid.NewGuid(),
+                GameId = purchasedGameId, 
+                UserId = userId,
+                PurchaseDate = DateTime.UtcNow,
+                PurchasePrice = 50m
+            };
+
+            var subscriptionPlan = new SubscriptionPlan
+            {
+                SubscriptionId = subscriptionId,
+                SubscriptionType = "Extra"
+            };
+
+            var planCountry = new SubscriptionPlanCountry
+            {
+                SubscriptionPlanCountryId = planCountryId,
+                SubscriptionId = subscriptionId,
+                CountryId = Guid.NewGuid(),
+                DurationMonths = 12,
+                Price = 60m
+            };
+
             var activeSub = new UserSubscriptionPlan 
             { 
-                SubscriptionPlanCountry = new SubscriptionPlanCountry 
-                { 
-                    SubscriptionId = subscriptionId,
-                    SubscriptionPlan = new SubscriptionPlan { SubscriptionType = "Extra" }
-                }
+                UserSubscriptionId = Guid.NewGuid(),
+                UserId = userId,
+                SubscriptionPlanCountryId = planCountryId,
+                PlanStartDate = DateTime.UtcNow.AddDays(-10),
+                PlanEndDate = DateTime.UtcNow.AddDays(30)
             };
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync(activeSub);
-            
-            var planWithGames = new SubscriptionPlan 
-            { 
-                GameSubscriptions = new List<GameSubscription> 
-                { 
-                    new GameSubscription { GameId = subGameId } 
-                } 
-            };
-            _mockPlanRepo.Setup(r => r.GetPlanWithGamesAsync(subscriptionId)).ReturnsAsync(planWithGames);
 
-            // 4. Mock Game Details retrieval
-            _mockGameRepo.Setup(r => r.GetGamesByIdsAsync(It.IsAny<IEnumerable<Guid>>()))
-                .ReturnsAsync(new List<Game> { purchasedGame, freeGame, subGame });
+            var gameSubscription = new GameSubscription 
+            { 
+                GameId = subGameId, 
+                SubscriptionId = subscriptionId 
+            };
+
+            await Context.Games.AddRangeAsync(new[] { purchasedGame, freeGame, subGame });
+            await Context.UserPurchaseGames.AddAsync(purchase);
+            await Context.SubscriptionPlans.AddAsync(subscriptionPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(planCountry);
+            await Context.UserSubscriptionPlans.AddAsync(activeSub);
+            await Context.GameSubscriptions.AddAsync(gameSubscription);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.GetUserLibraryAsync(userId);
@@ -284,22 +305,36 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var subId = Guid.NewGuid();
+            var gameId = Guid.NewGuid();
+            var categoryId = Guid.NewGuid();
+
+            var category = new Category { CategoryId = categoryId, CategoryName = "Action", IsDeleted = false };
             var game = new Game 
             { 
-                GameId = Guid.NewGuid(), 
-                GameName = "Included Game", 
-                GameCategories = new List<GameCategory> 
-                { 
-                    new GameCategory { Category = new Category { CategoryName = "Action" } } 
-                } 
+                GameId = gameId, 
+                GameName = "Included Game",
+                BasePrice = 50m,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
             };
 
-            _context.GameSubscriptions.Add(new GameSubscription 
+            var gameCategory = new GameCategory 
+            { 
+                GameId = gameId,
+                CategoryId = categoryId
+            };
+
+            var gameSubscription = new GameSubscription 
             { 
                 SubscriptionId = subId, 
-                Game = game 
-            });
-            await _context.SaveChangesAsync();
+                GameId = gameId
+            };
+
+            await Context.Categories.AddAsync(category);
+            await Context.Games.AddAsync(game);
+            await Context.GameCategories.AddAsync(gameCategory);
+            await Context.GameSubscriptions.AddAsync(gameSubscription);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _entitlementService.GetSubscriptionGamesAsync(subId);

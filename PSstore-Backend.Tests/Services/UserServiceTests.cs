@@ -1,165 +1,88 @@
+using Bogus;
 using FluentAssertions;
-using Microsoft.Extensions.Configuration;
-using Moq;
+using Microsoft.EntityFrameworkCore;
 using PSstore.DTOs;
-using PSstore.Interfaces;
 using PSstore.Models;
 using PSstore.Services;
+using PSstore_Backend.Tests.Helpers;
 
 namespace PSstore_Backend.Tests.Services
 {
-    public class UserServiceTests
+    public class UserServiceTests : IntegrationTestBase
     {
-        private readonly Mock<IUserRepository> _mockUserRepository;
-        private readonly Mock<IJwtService> _mockJwtService;
-        private readonly Mock<IConfiguration> _mockConfiguration;
-        private readonly Mock<IUserSubscriptionPlanRepository> _mockSubscriptionRepository;
         private readonly UserService _userService;
 
         public UserServiceTests()
         {
-            _mockUserRepository = new Mock<IUserRepository>();
-            _mockJwtService = new Mock<IJwtService>();
-            _mockConfiguration = new Mock<IConfiguration>();
-            _mockSubscriptionRepository = new Mock<IUserSubscriptionPlanRepository>();
-
-            _mockConfiguration.Setup(c => c["JwtSettings:ExpirationMinutes"]).Returns("60");
-
+            // Create the service with real repositories and mocked external dependencies
             _userService = new UserService(
-                _mockUserRepository.Object,
-                _mockJwtService.Object,
-                _mockConfiguration.Object,
-                _mockSubscriptionRepository.Object
+                UserRepository,
+                MockJwtService.Object,
+                MockConfiguration.Object,
+                UserSubscriptionPlanRepository
             );
         }
-
-        [Fact]
-        public async Task GetUserByIdAsync_ShouldReturnUser_WhenUserExists()
-        {
-            // Arrange
-            var userId = Guid.NewGuid();
-            var user = new User
-            {
-                UserId = userId,
-                UserName = "TestUser",
-                UserEmail = "test@example.com",
-                Age = 25,
-                CountryId = Guid.Parse("20000000-0000-0000-0000-000000000001")
-            };
-
-            _mockUserRepository.Setup(repo => repo.GetByIdAsync(userId))
-                .ReturnsAsync(user);
-            _mockSubscriptionRepository.Setup(repo => repo.HasActiveSubscriptionAsync(userId))
-                .ReturnsAsync(true);
-
-            // Act
-            var result = await _userService.GetUserByIdAsync(userId);
-
-            // Assert
-            result.Should().NotBeNull();
-            result!.UserId.Should().Be(userId);
-            result.UserName.Should().Be(user.UserName);
-            result.SubscriptionStatus.Should().BeTrue();
-        }
-
-        [Fact]
-        public async Task GetUserByIdAsync_ShouldReturnNull_WhenUserDoesNotExist()
-        {
-            // Arrange
-            var userId = Guid.NewGuid();
-            _mockUserRepository.Setup(repo => repo.GetByIdAsync(userId))
-                .ReturnsAsync((User?)null);
-
-            // Act
-            var result = await _userService.GetUserByIdAsync(userId);
-
-            // Assert
-            result.Should().BeNull();
-        }
-
-        [Fact]
-        public async Task GetUserByEmailAsync_ShouldReturnUser_WhenUserExists()
-        {
-            var email = "test@example.com";
-            var user = new User
-            {
-                UserId = Guid.NewGuid(),
-                UserEmail = email,
-                UserName = "TestUser"
-            };
-
-            _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-                .ReturnsAsync(user);
-
-            _mockSubscriptionRepository.Setup(r => r.HasActiveSubscriptionAsync(user.UserId))
-                .ReturnsAsync(false);
-
-            var result = await _userService.GetUserByEmailAsync(email);
-
-            result.Should().NotBeNull();
-            result!.UserEmail.Should().Be(email);
-        }
-
-        [Fact]
-        public async Task GetUserByEmailAsync_ShouldNotReturnUser_WhenUserDoesNotExists()
-        {
-            var email = "test@example.com";
-
-            _mockUserRepository.Setup(r => r.GetByEmailAsync(email))
-                .ReturnsAsync((User?)null);
-
-
-            var result = await _userService.GetUserByEmailAsync(email);
-
-            result.Should().BeNull();
-        }
-
 
         [Fact]
         public async Task CreateUserAsync_ShouldCreateUser_WhenEmailIsUnique()
         {
             // Arrange
-            var createUserDTO = new CreateUserDTO
+            var createUserDto = new CreateUserDTO
             {
-                UserName = "NewUser",
-                UserEmail = "newuser@example.com",
-                UserPassword = "Password123!",
-                Age = 30,
-                CountryId = Guid.Parse("20000000-0000-0000-0000-000000000001")
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = Faker.Internet.Password(),
+                Age = Faker.Random.Int(18, 65),
+                CountryId = Guid.NewGuid()
             };
 
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(createUserDTO.UserEmail))
-                .ReturnsAsync((User?)null);
-
             // Act
-            var result = await _userService.CreateUserAsync(createUserDTO);
+            var result = await _userService.CreateUserAsync(createUserDto);
 
             // Assert
             result.Should().NotBeNull();
-            result.UserEmail.Should().Be(createUserDTO.UserEmail);
-            
-            // Verify repository add was called
-            _mockUserRepository.Verify(repo => repo.AddAsync(It.Is<User>(u => 
-                u.UserEmail == createUserDTO.UserEmail && 
-                u.UserName == createUserDTO.UserName &&
-                u.UserPassword != createUserDTO.UserPassword // Password should be hashed
-            )), Times.Once);
+            result.UserEmail.Should().Be(createUserDto.UserEmail);
+            result.UserName.Should().Be(createUserDto.UserName);
+            result.Age.Should().Be(createUserDto.Age);
+            result.IsDeleted.Should().BeFalse();
+            result.SubscriptionStatus.Should().BeFalse();
 
-            _mockUserRepository.Verify(repo => repo.SaveChangesAsync(), Times.Once);
+            var savedUser = await Context.Users.FirstOrDefaultAsync(u => u.UserEmail == createUserDto.UserEmail);
+            savedUser.Should().NotBeNull();
+            savedUser!.UserPassword.Should().NotBe(createUserDto.UserPassword);
         }
 
         [Fact]
         public async Task CreateUserAsync_ShouldThrowException_WhenEmailAlreadyExists()
         {
             // Arrange
-            var createUserDTO = new CreateUserDTO { UserEmail = "existing@example.com", UserPassword = "password" };
-            var existingUser = new User { UserEmail = "existing@example.com" };
+            var email = Faker.Internet.Email();
+            var existingUser = new User
+            {
+                UserId = Guid.NewGuid(),
+                UserName = Faker.Internet.UserName(),
+                UserEmail = email,
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password123"),
+                Age = 25,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+            
+            await Context.Users.AddAsync(existingUser);
+            await Context.SaveChangesAsync();
 
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(createUserDTO.UserEmail))
-                .ReturnsAsync(existingUser);
+            var createUserDto = new CreateUserDTO
+            {
+                UserName = Faker.Internet.UserName(),
+                UserEmail = email, // Same email
+                UserPassword = Faker.Internet.Password(),
+                Age = 30,
+                CountryId = Guid.NewGuid()
+            };
 
             // Act
-            var act = async () => await _userService.CreateUserAsync(createUserDTO);
+            var act = async () => await _userService.CreateUserAsync(createUserDto);
 
             // Assert
             await act.Should().ThrowAsync<InvalidOperationException>()
@@ -167,26 +90,74 @@ namespace PSstore_Backend.Tests.Services
         }
 
         [Fact]
+        public async Task GetUserByIdAsync_ShouldReturnUser_WhenUserExists()
+        {
+            // Arrange
+            var user = new User
+            {
+                UserId = Guid.NewGuid(),
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password123"),
+                Age = Faker.Random.Int(18, 65),
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+            
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
+
+            // Act
+            var result = await _userService.GetUserByIdAsync(user.UserId);
+
+            // Assert
+            result.Should().NotBeNull();
+            result!.UserId.Should().Be(user.UserId);
+            result.UserName.Should().Be(user.UserName);
+            result.UserEmail.Should().Be(user.UserEmail);
+            result.Age.Should().Be(user.Age);
+            result.SubscriptionStatus.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task GetUserByIdAsync_ShouldReturnNull_WhenUserDoesNotExist()
+        {
+            // Arrange
+            var userId = Guid.NewGuid();
+
+            // Act
+            var result = await _userService.GetUserByIdAsync(userId);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
         public async Task LoginAsync_ShouldReturnToken_WhenCredentialsAreValid()
         {
             // Arrange
             var password = "SecurePassword123!";
-            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4); // Low work factor for speed in tests
-            var loginDTO = new LoginDTO { UserEmail = "valid@example.com", UserPassword = password };
-            
-            var user = new User 
-            { 
-                UserId = Guid.NewGuid(), 
-                UserEmail = loginDTO.UserEmail, 
+            var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4);
+            var user = new User
+            {
+                UserId = Guid.NewGuid(),
+                UserEmail = "valid@example.com",
                 UserPassword = hashedPassword,
-                UserName = "ValidUser"
+                UserName = "ValidUser",
+                Age = 25,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
             };
 
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(loginDTO.UserEmail))
-                .ReturnsAsync(user);
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
 
-            _mockJwtService.Setup(jwt => jwt.GenerateToken(user.UserId, "User"))
+            MockJwtService.Setup(jwt => jwt.GenerateToken(user.UserId, "User"))
                 .Returns("generated_jwt_token");
+
+            var loginDTO = new LoginDTO { UserEmail = "valid@example.com", UserPassword = password };
 
             // Act
             var result = await _userService.LoginAsync(loginDTO);
@@ -203,17 +174,22 @@ namespace PSstore_Backend.Tests.Services
             // Arrange
             var password = "CorrectPassword";
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password, workFactor: 4);
-            var loginDTO = new LoginDTO { UserEmail = "valid@example.com", UserPassword = "WrongPassword" };
-
             var user = new User
             {
                 UserId = Guid.NewGuid(),
-                UserEmail = loginDTO.UserEmail,
-                UserPassword = hashedPassword
+                UserEmail = "valid@example.com",
+                UserPassword = hashedPassword,
+                UserName = "ValidUser",
+                Age = 25,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
             };
 
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(loginDTO.UserEmail))
-                .ReturnsAsync(user);
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
+
+            var loginDTO = new LoginDTO { UserEmail = "valid@example.com", UserPassword = "WrongPassword" };
 
             // Act
             var result = await _userService.LoginAsync(loginDTO);
@@ -227,8 +203,6 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var loginDTO = new LoginDTO { UserEmail = "unknown@example.com", UserPassword = "password" };
-            _mockUserRepository.Setup(repo => repo.GetByEmailAsync(loginDTO.UserEmail))
-                .ReturnsAsync((User?)null);
 
             // Act
             var result = await _userService.LoginAsync(loginDTO);
@@ -238,70 +212,115 @@ namespace PSstore_Backend.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateUserAsync_ShouldUpdateUser_WhenValid()
+        {
+            // Arrange
+            var userId = Guid.NewGuid();
+            var user = new User
+            {
+                UserId = userId,
+                UserName = "OldName",
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 20,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
+
+            var dto = new UpdateUserDTO { UserName = "NewName", Age = 25 };
+
+            // Act
+            var result = await _userService.UpdateUserAsync(userId, dto);
+
+            // Assert
+            result.Should().NotBeNull();
+            result!.UserName.Should().Be("NewName");
+            result.Age.Should().Be(25);
+
+            var updated = await Context.Users.FindAsync(userId);
+            updated!.UserName.Should().Be("NewName");
+            updated.Age.Should().Be(25);
+        }
+
+        [Fact]
         public async Task UpdateUserAsync_ShouldReturnNull_WhenUserNotFound()
         {
-            //Arrange
+            // Arrange
             var userId = Guid.NewGuid();
             var dto = new UpdateUserDTO { UserName = "NewName" };
 
-            _mockUserRepository.Setup(r => r.GetByIdAsync(userId))
-                .ReturnsAsync((User?)null);
-            //Act
+            // Act
             var result = await _userService.UpdateUserAsync(userId, dto);
-            //Assert
+
+            // Assert
             result.Should().BeNull();
         }
 
-
         [Fact]
-        public async Task UpdateUserAsync_ShouldUpdateUser_WhenValid()
+        public async Task SoftDeleteUserAsync_ShouldMarkAsDeleted()
         {
-            //Arrange
+            // Arrange
             var userId = Guid.NewGuid();
-            var user = new User { UserId = userId, UserName = "OldName", Age = 20 };
+            var user = new User
+            {
+                UserId = userId,
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 25,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
 
-            _mockUserRepository.Setup(r => r.GetByIdAsync(userId))
-                .ReturnsAsync(user);
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
 
-            _mockSubscriptionRepository.Setup(r => r.HasActiveSubscriptionAsync(userId))
-                .ReturnsAsync(true);
-            //Act
-            var dto = new UpdateUserDTO { UserName = "NewName", Age = 25 };
-
-            var result = await _userService.UpdateUserAsync(userId, dto);
-
-            _mockUserRepository.Verify(r => r.Update(user), Times.Once);
-            _mockUserRepository.Verify(r => r.SaveChangesAsync(), Times.Once);
-            //Assert
-            result!.UserName.Should().Be("NewName");
-            result.Age.Should().Be(25);
-        }
-
-        [Fact]
-        public async Task SoftDeleteUserAsync_ShouldCallRepository()
-        {
-            var userId = Guid.NewGuid();
-
+            // Act
             var result = await _userService.SoftDeleteUserAsync(userId);
 
-            _mockUserRepository.Verify(r => r.SoftDeleteAsync(userId), Times.Once);
+            // Assert
             result.Should().BeTrue();
+
+            var deleted = await Context.Users.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(u => u.UserId == userId);
+            deleted.Should().NotBeNull();
+            deleted!.IsDeleted.Should().BeTrue();
         }
 
         [Fact]
-        public async Task RestoreUserAsync_ShouldReturnRepositoryResult()
+        public async Task RestoreUserAsync_ShouldRestoreDeletedUser()
         {
+            // Arrange
             var userId = Guid.NewGuid();
+            var user = new User
+            {
+                UserId = userId,
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 25,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = true
+            };
 
-            _mockUserRepository.Setup(r => r.RestoreAsync(userId))
-                .ReturnsAsync(true);
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
 
+            // Act
             var result = await _userService.RestoreUserAsync(userId);
 
+            // Assert
             result.Should().BeTrue();
+
+            var restored = await Context.Users.FindAsync(userId);
+            restored.Should().NotBeNull();
+            restored!.IsDeleted.Should().BeFalse();
         }
-
-
-
     }
 }

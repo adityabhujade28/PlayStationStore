@@ -11,7 +11,7 @@ namespace PSstore.Interfaces
     public interface IGameService
     {
         Task<GameDTO?> GetGameByIdAsync(Guid gameId, Guid? userId = null);
-        Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false, Guid? userId = null);
+
         Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm, Guid? userId = null);
         Task<IEnumerable<GameDTO>> GetGamesByCategoryAsync(Guid categoryId, Guid? userId = null);
         Task<IEnumerable<GameDTO>> GetFreeToPlayGamesAsync(Guid? userId = null);

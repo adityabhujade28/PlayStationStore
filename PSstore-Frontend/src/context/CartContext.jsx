@@ -5,19 +5,22 @@ import apiClient from '../utils/apiClient';
 const CartContext = createContext(null);
 
 export const CartProvider = ({ children }) => {
-  const { token, getDecodedToken, isAuthenticated } = useAuth();
+  const { token, getDecodedToken, isAuthenticated, loading: authLoading } = useAuth();
   const [cartCount, setCartCount] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // Wait for auth to be ready
+    if (authLoading) return;
+    
     if (isAuthenticated()) {
       fetchCartCount();
     } else {
       setCartCount(0);
       setCartItems([]);
     }
-  }, [token, isAuthenticated]); // Added isAuthenticated to dependency array
+  }, [token, isAuthenticated, authLoading]);
 
   const fetchCartCount = async () => {
     try {

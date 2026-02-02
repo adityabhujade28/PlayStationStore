@@ -11,10 +11,17 @@ const getToken = () => localStorage.getItem('token');
 const apiFetch = async (endpoint, options = {}) => {
   const token = getToken();
   
+  // Don't set Content-Type for FormData - browser will set it with boundary
+  const isFormData = options.body instanceof FormData;
+  
   const headers = {
-    'Content-Type': 'application/json',
     ...options.headers,
   };
+
+  // Only set Content-Type if not FormData and not already set
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -49,12 +56,7 @@ const apiFetch = async (endpoint, options = {}) => {
 
 const apiClient = {
   get: (endpoint, options = {}) => {
-    // Add cache-busting parameter to prevent browser caching
-    const separator = endpoint.includes('?') ? '&' : '?';
-    const cacheBuster = `${separator}_t=${Date.now()}`;
-    const endpointWithCacheBuster = endpoint + cacheBuster;
-    
-    return apiFetch(endpointWithCacheBuster, { 
+    return apiFetch(endpoint, { 
       ...options, 
       method: 'GET',
       headers: {
@@ -66,17 +68,23 @@ const apiClient = {
     });
   },
   
-  post: (endpoint, body, options = {}) => apiFetch(endpoint, { 
-    ...options, 
-    method: 'POST', 
-    body: JSON.stringify(body) 
-  }),
+  post: (endpoint, body, options = {}) => {
+    const isFormData = body instanceof FormData;
+    return apiFetch(endpoint, { 
+      ...options, 
+      method: 'POST', 
+      body: isFormData ? body : JSON.stringify(body)
+    });
+  },
 
-  put: (endpoint, body, options = {}) => apiFetch(endpoint, { 
-    ...options, 
-    method: 'PUT', 
-    body: JSON.stringify(body) 
-  }),
+  put: (endpoint, body, options = {}) => {
+    const isFormData = body instanceof FormData;
+    return apiFetch(endpoint, { 
+      ...options, 
+      method: 'PUT', 
+      body: isFormData ? body : JSON.stringify(body)
+    });
+  },
 
   delete: (endpoint, options = {}) => apiFetch(endpoint, { ...options, method: 'DELETE' }),
 };

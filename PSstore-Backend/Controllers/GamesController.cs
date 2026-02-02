@@ -18,14 +18,7 @@ namespace PSstore.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetAllGames([FromQuery] bool includeDeleted = false, [FromQuery] Guid? userId = null)
-        {
-            _logger.LogInformation("Fetching all games. IncludeDeleted: {IncludeDeleted}, UserId: {UserId}", includeDeleted, userId);
-            var games = await _gameService.GetAllGamesAsync(includeDeleted, userId);
-            return Ok(games);
-        }
+
 
         /// <summary>
         /// Get paginated games with optional filtering and sorting

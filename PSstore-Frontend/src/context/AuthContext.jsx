@@ -59,14 +59,19 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const response = await apiClient.post('/users/login', {
-        userEmail: email,
-        userPassword: password,
-      });
+      const payload = {
+        UserEmail: email,
+        UserPassword: password,
+      };
+      
+      console.log('Login attempt for:', email);
+      
+      const response = await apiClient.post('/users/login', payload);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
+        const errorData = await response.json();
+        console.error('Login failed:', response.status, errorData);
+        throw new Error(errorData.message || errorData.title || 'Login failed');
       }
 
       const data = await response.json();
@@ -78,6 +83,7 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
       return { success: false, error: error.message };
     }
   };
@@ -85,8 +91,8 @@ export const AuthProvider = ({ children }) => {
   const adminLogin = async (email, password) => {
     try {
       const response = await apiClient.post('/admin/login', {
-        userEmail: email,
-        userPassword: password,
+        UserEmail: email,
+        UserPassword: password,
       });
 
       if (!response.ok) {
@@ -108,22 +114,39 @@ export const AuthProvider = ({ children }) => {
 
   const signup = async (userName, email, password, age, countryId) => {
     try {
-      const response = await apiClient.post('/users', {
-        userName,
-        userEmail: email,
-        userPassword: password,
-        age,
-        countryId,
-      });
+      // Backend expects PascalCase field names directly (not wrapped)
+      const payload = {
+        UserName: userName,
+        UserEmail: email,
+        UserPassword: password,
+        Age: age,
+        CountryId: String(countryId), // Ensure countryId is a string (GUID)
+      };
+      
+      console.log('Signup payload:', payload);
+      
+      const response = await apiClient.post('/users', payload);
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Signup failed');
+        const errorData = await response.json();
+        console.error('Signup failed:', response.status, errorData);
+        
+        // Extract validation errors if present
+        if (errorData.errors) {
+          console.error('Validation errors:', JSON.stringify(errorData.errors, null, 2));
+          const errorMessages = Object.entries(errorData.errors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+          throw new Error(errorMessages || 'Validation failed');
+        }
+        
+        throw new Error(errorData.message || errorData.title || 'Signup failed');
       }
 
       // Auto-login after successful signup
       return await login(email, password);
     } catch (error) {
+      console.error('Signup error:', error);
       return { success: false, error: error.message };
     }
   };

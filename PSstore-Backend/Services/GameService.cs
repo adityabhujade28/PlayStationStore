@@ -36,26 +36,7 @@ namespace PSstore.Services
             return await MapToGameDTOAsync(game, countryId);
         }
 
-        public async Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false, Guid? userId = null)
-        {
-            var games = includeDeleted 
-                ? await _gameRepository.GetAllIncludingDeletedAsync()
-                : await _gameRepository.GetAllAsync();
-            
-            Guid? countryId = null;
-            if (userId.HasValue)
-            {
-                var user = await _userRepository.GetByIdAsync(userId.Value);
-                countryId = user?.CountryId;
-            }
-            
-            var gameDtos = new List<GameDTO>();
-            foreach (var game in games)
-            {
-                gameDtos.Add(await MapToGameDTOAsync(game, countryId));
-            }
-            return gameDtos;
-        }
+
 
         public async Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm, Guid? userId = null)
         {
