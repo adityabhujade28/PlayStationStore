@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import Login from './components/Login';
@@ -10,18 +11,35 @@ import CheckoutSuccess from './pages/CheckoutSuccess';
 import Library from './pages/Library';
 import Subscriptions from './pages/Subscriptions';
 import Profile from './pages/Profile';
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminLayout from './layouts/AdminLayout';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import AdminGames from './pages/admin/AdminGames';
-import AdminGameForm from './pages/admin/AdminGameForm';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminSubscriptions from './pages/admin/AdminSubscriptions';
-import AdminSubscriptionForm from './pages/admin/AdminSubscriptionForm';
-// import AdminSubscriptionDetail from './pages/admin/AdminSubscriptionDetail';
-import AdminSubscriptionDetail from './pages/admin/AdminSubscriptionDetail';
 import AdminRoute from './components/AdminRoute';
 import './App.css';
+
+// Lazy load admin components
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminGames = lazy(() => import('./pages/admin/AdminGames'));
+const AdminGameForm = lazy(() => import('./pages/admin/AdminGameForm'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
+const AdminSubscriptionForm = lazy(() => import('./pages/admin/AdminSubscriptionForm'));
+const AdminSubscriptionDetail = lazy(() => import('./pages/admin/AdminSubscriptionDetail'));
+
+// Loading fallback component
+function AdminLoadingFallback() {
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      fontSize: '18px',
+      color: '#667eea'
+    }}>
+      Loading Admin Panel...
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -132,21 +150,63 @@ function AppContent() {
           </ProtectedRoute>
         }
       />
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin/login" element={
+        <Suspense fallback={<AdminLoadingFallback />}>
+          <AdminLogin />
+        </Suspense>
+      } />
       <Route path="/admin" element={
         <AdminRoute>
-          <AdminLayout />
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminLayout />
+          </Suspense>
         </AdminRoute>
       }>
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="games" element={<AdminGames />} />
-        <Route path="games/new" element={<AdminGameForm />} />
-        <Route path="games/edit/:id" element={<AdminGameForm />} />
-        <Route path="users" element={<AdminUsers />} />
-        <Route path="subscriptions" element={<AdminSubscriptions />} />
-        <Route path="subscriptions/new" element={<AdminSubscriptionForm />} />
-        <Route path="subscriptions/edit/:id" element={<AdminSubscriptionForm />} />
-        <Route path="subscriptions/:id" element={<AdminSubscriptionDetail />} />
+        <Route path="dashboard" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminDashboard />
+          </Suspense>
+        } />
+        <Route path="games" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminGames />
+          </Suspense>
+        } />
+        <Route path="games/new" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminGameForm />
+          </Suspense>
+        } />
+        <Route path="games/edit/:id" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminGameForm />
+          </Suspense>
+        } />
+        <Route path="users" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminUsers />
+          </Suspense>
+        } />
+        <Route path="subscriptions" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSubscriptions />
+          </Suspense>
+        } />
+        <Route path="subscriptions/new" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSubscriptionForm />
+          </Suspense>
+        } />
+        <Route path="subscriptions/edit/:id" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSubscriptionForm />
+          </Suspense>
+        } />
+        <Route path="subscriptions/:id" element={
+          <Suspense fallback={<AdminLoadingFallback />}>
+            <AdminSubscriptionDetail />
+          </Suspense>
+        } />
       </Route>
 
       <Route path="*" element={<Navigate to="/" />} />

@@ -40,7 +40,6 @@ namespace PSstore.Services
                 return null;
             }
 
-            // Generate JWT token with "Admin" role
             var token = _jwtService.GenerateToken(admin.AdminId, "Admin");
             var expirationMinutes = Convert.ToDouble(_configuration["JwtSettings:ExpirationMinutes"]);
 

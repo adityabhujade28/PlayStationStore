@@ -11,7 +11,7 @@ namespace PSstore.Interfaces
     public interface IGameService
     {
         Task<GameDTO?> GetGameByIdAsync(Guid gameId, Guid? userId = null);
-        Task<IEnumerable<GameDTO>> GetAllGamesAsync(bool includeDeleted = false, Guid? userId = null);
+
         Task<IEnumerable<GameDTO>> SearchGamesAsync(string searchTerm, Guid? userId = null);
         Task<IEnumerable<GameDTO>> GetGamesByCategoryAsync(Guid categoryId, Guid? userId = null);
         Task<IEnumerable<GameDTO>> GetFreeToPlayGamesAsync(Guid? userId = null);
@@ -42,18 +42,7 @@ namespace PSstore.Interfaces
         Task<PagedResponse<GameDTO>> GetPagedSearchResultsAsync(string searchTerm, int pageNumber, int pageSize, Guid? userId = null);
     }
 
-    public interface IPurchaseService
-    {
-        Task<PurchaseResponseDTO> PurchaseGameAsync(Guid userId, CreatePurchaseDTO purchaseDTO);
-        Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(Guid userId);
-        Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
-        Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(Guid purchaseId);
 
-        /// <summary>
-        /// Get paginated purchase history for a user
-        /// </summary>
-        Task<PagedResponse<PurchaseHistoryDTO>> GetPagedUserPurchaseHistoryAsync(Guid userId, int pageNumber, int pageSize);
-    }
 
     public interface ISubscriptionService
     {
@@ -89,6 +78,15 @@ namespace PSstore.Interfaces
         Task<CheckoutResultDTO> CheckoutAsync(Guid userId);
     }
 
+    public interface IPurchaseService
+    {
+        Task<PurchaseResponseDTO> PurchaseGameAsync(Guid userId, CreatePurchaseDTO purchaseDTO);
+        Task<IEnumerable<PurchaseHistoryDTO>> GetUserPurchaseHistoryAsync(Guid userId);
+        Task<bool> HasUserPurchasedGameAsync(Guid userId, Guid gameId);
+        Task<PurchaseResponseDTO?> GetPurchaseDetailsAsync(Guid purchaseId);
+        Task<PagedResponse<PurchaseHistoryDTO>> GetPagedUserPurchaseHistoryAsync(Guid userId, int pageNumber, int pageSize);
+    }
+
     public interface IUserService
     {
         Task<UserDTO?> GetUserByIdAsync(Guid userId);
@@ -110,11 +108,12 @@ namespace PSstore.Interfaces
     }
     public interface ICategoryService
     {
-        Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId);
         Task<IEnumerable<CategoryDTO>> GetAllCategoriesAsync(bool includeDeleted = false);
+        Task<CategoryDTO?> GetCategoryByIdAsync(Guid categoryId);
         Task<CategoryDTO> CreateCategoryAsync(CreateCategoryDTO createCategoryDTO);
         Task<CategoryDTO?> UpdateCategoryAsync(Guid categoryId, UpdateCategoryDTO updateCategoryDTO);
         Task<bool> SoftDeleteCategoryAsync(Guid categoryId);
         Task<bool> RestoreCategory(Guid categoryId);
     }
+
 }

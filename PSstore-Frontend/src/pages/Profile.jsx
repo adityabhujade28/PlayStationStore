@@ -1,104 +1,108 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import styles from './Profile.module.css';
 import apiClient from '../utils/apiClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 function Profile() {
   const { getDecodedToken } = useAuth();
-  const [user, setUser] = useState(null);
-  const [country, setCountry] = useState(null);
-  const [countries, setCountries] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [editMode, setEditMode] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  const [formData, setFormData] = useState({
-    userName: '',
-    email: '',
-    age: '',
-    countryId: ''
+  const decoded = getDecodedToken();
+  const userId = decoded?.userId;
+
+  // Fetch user profile
+  const { data: user, isLoading: userLoading, error: userError } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/users/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch user');
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 min cache - shares with Navbar
   });
 
-  useEffect(() => {
-    fetchUserProfile();
-    fetchCountries();
-  }, []);
+  // Fetch user's country
+  const { data: country } = useQuery({
+    queryKey: ['country', user?.countryId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/countries/${user.countryId}`);
+      if (!res.ok) throw new Error('Failed to fetch country');
+      return res.json();
+    },
+    enabled: !!user?.countryId,
+    staleTime: 24 * 60 * 60 * 1000, // 24 hr - shares with other pages
+  });
 
-  const fetchUserProfile = async () => {
-    setLoading(true);
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+  // Fetch all countries for dropdown (24hr cache)
+  const { data: countries = [] } = useQuery({
+    queryKey: ['countries'],
+    queryFn: async () => {
+      const res = await apiClient.get('/countries');
+      if (!res.ok) throw new Error('Failed to fetch countries');
+      return res.json();
+    },
+    staleTime: 24 * 60 * 60 * 1000, // 24 hr - countries rarely change
+  });
 
-      const response = await apiClient.get(`/users/${userId}`);
+  // Form state
+  const [formData, setFormData] = useState({
+    userName: user?.userName || '',
+    email: user?.userEmail || user?.email || '',
+    age: user?.age || '',
+    countryId: user?.countryId || ''
+  });
 
-      if (response.ok) {
-        const data = await response.json();
-        setUser(data);
-        setFormData({
-          userName: data.userName,
-          email: data.userEmail || data.email,
-          age: data.age,
-          countryId: data.countryId
-        });
+  // Update form when user data loads
+  if (user && (formData.userName === '' || formData.email === '')) {
+    setFormData({
+      userName: user.userName,
+      email: user.userEmail || user.email,
+      age: user.age,
+      countryId: user.countryId
+    });
+  }
 
-        if (data.countryId) {
-          const countryResponse = await apiClient.get(`/countries/${data.countryId}`);
-          if (countryResponse.ok) {
-            const countryData = await countryResponse.json();
-            setCountry(countryData);
-          }
-        }
-      } else {
-        setError('Failed to load profile');
-      }
-    } catch (err) {
-      setError('Error loading profile: ' + err.message);
-    } finally {
-      setLoading(false);
+  // Update profile mutation
+  const { mutate: updateProfile, isPending: isSaving } = useMutation({
+    mutationFn: async (updatedData) => {
+      const res = await apiClient.put(`/users/${userId}`, updatedData);
+      if (!res.ok) throw new Error('Failed to update profile');
+      return res.json();
+    },
+    onSuccess: (updatedUser) => {
+      // Update user cache with new data
+      queryClient.setQueryData(['user', userId], updatedUser);
+      alert('Profile updated successfully!');
+      setEditMode(false);
+    },
+    onError: (error) => {
+      alert(error.message || 'Failed to update profile');
     }
-  };
-
-  const fetchCountries = async () => {
-    try {
-      const response = await apiClient.get('/countries');
-
-      if (response.ok) {
-        const data = await response.json();
-        setCountries(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch countries:', err);
-    }
-  };
+  });
 
   const handleEditProfile = async (e) => {
     e.preventDefault();
-    setSaving(true);
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      const response = await apiClient.put(`/users/${userId}`, formData);
-
-      if (response.ok) {
-        alert('Profile updated successfully!');
-        setEditMode(false);
-        await fetchUserProfile();
-      } else {
-        const error = await response.json();
-        alert(error.message || 'Failed to update profile');
-      }
-    } catch (err) {
-      alert('Error updating profile: ' + err.message);
-    } finally {
-      setSaving(false);
-    }
+    updateProfile(formData);
   };
 
-  if (loading) {
+  const handleCancel = () => {
+    setEditMode(false);
+    // Reset form to current user data
+    setFormData({
+      userName: user.userName,
+      email: user.userEmail || user.email,
+      age: user.age,
+      countryId: user.countryId
+    });
+  };
+
+  const isLoading = userLoading;
+
+  if (isLoading) {
     return (
       <>
         <Navbar />
@@ -109,12 +113,12 @@ function Profile() {
     );
   }
 
-  if (error) {
+  if (userError) {
     return (
       <>
         <Navbar />
         <div className={styles.container}>
-          <div className={styles.error}>{error}</div>
+          <div className={styles.error}>{userError.message}</div>
         </div>
       </>
     );
@@ -201,22 +205,14 @@ function Profile() {
                   <button
                     type="submit"
                     className={styles.saveButton}
-                    disabled={saving}
+                    disabled={isSaving}
                   >
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {isSaving ? 'Saving...' : 'Save Changes'}
                   </button>
                   <button
                     type="button"
                     className={styles.cancelButton}
-                    onClick={() => {
-                      setEditMode(false);
-                      setFormData({
-                        userName: user.userName,
-                        email: user.userEmail || user.email,
-                        age: user.age,
-                        countryId: user.countryId
-                      });
-                    }}
+                    onClick={handleCancel}
                   >
                     Cancel
                   </button>

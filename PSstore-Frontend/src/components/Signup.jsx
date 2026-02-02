@@ -57,6 +57,7 @@ function Signup() {
         const response = await apiClient.get('/countries');
         if (response.ok) {
           const data = await response.json();
+          console.log('Countries from API:', data);
           setCountries(data);
         } else {
           console.error('Failed to fetch countries:', response.status);
@@ -117,12 +118,13 @@ function Signup() {
     // Calculate age from date of birth to send to backend
     const calculatedAge = calculateAge(formData.dateOfBirth);
 
+    // Don't parse countryId - keep it as string since backend expects GUID
     const result = await signup(
       formData.userName,
       formData.email,
       formData.password,
       calculatedAge,
-      parseInt(formData.countryId)
+      formData.countryId // Keep as string (GUID)
     );
 
     if (!result.success) {

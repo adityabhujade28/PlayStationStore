@@ -19,7 +19,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog(); // Use Serilog for logging
 
 // Add services to the container.
-builder.Services.AddControllers(); 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    }); 
 
 // Configure SQL Server
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -32,22 +36,24 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IRegionRepository, RegionRepository>();
 builder.Services.AddScoped<ICountryRepository, CountryRepository>();
 builder.Services.AddScoped<IGameCountryRepository, GameCountryRepository>();
-builder.Services.AddScoped<IUserPurchaseGameRepository, UserPurchaseGameRepository>();
+
 builder.Services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
 builder.Services.AddScoped<IGameSubscriptionRepository, GameSubscriptionRepository>();
 builder.Services.AddScoped<ISubscriptionPlanCountryRepository, SubscriptionPlanCountryRepository>();
 builder.Services.AddScoped<IUserSubscriptionPlanRepository, UserSubscriptionPlanRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<ICartItemRepository, CartItemRepository>();
+builder.Services.AddScoped<IUserPurchaseGameRepository, UserPurchaseGameRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 
 // Register Services
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IEntitlementService, EntitlementService>();
 builder.Services.AddScoped<IGameService, GameService>();
-builder.Services.AddScoped<IPurchaseService, PurchaseService>();
+
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -80,12 +86,15 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add Response Caching for API responses
+builder.Services.AddResponseCaching();
+
 // Add CORS policy (add this BEFORE var app = builder.Build();)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Vite uses 5173
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173","http://localhost:4173") // Vite uses 5173
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -106,6 +115,19 @@ using (var scope = app.Services.CreateScope())
 app.UseCors("AllowReactApp");
 
 app.UseMiddleware<ExceptionMiddleware>(); // Global Exception Handling
+
+// Enable response caching
+app.UseResponseCaching();
+
+// Configure static files with cache headers
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        // Cache images and static assets for 30 days (2592000 seconds)
+        context.Context.Response.Headers.CacheControl = "public, max-age=2592000, immutable";
+    }
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -18,14 +18,7 @@ namespace PSstore.Controllers
             _logger = logger;
         }
 
-        [HttpGet]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetAllGames([FromQuery] bool includeDeleted = false, [FromQuery] Guid? userId = null)
-        {
-            _logger.LogInformation("Fetching all games. IncludeDeleted: {IncludeDeleted}, UserId: {UserId}", includeDeleted, userId);
-            var games = await _gameService.GetAllGamesAsync(includeDeleted, userId);
-            return Ok(games);
-        }
+
 
         /// <summary>
         /// Get paginated games with optional filtering and sorting
@@ -88,68 +81,6 @@ namespace PSstore.Controllers
             return Ok(game);
         }
 
-        [HttpGet("search")]
-        [Authorize]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> SearchGames([FromQuery] string query, [FromQuery] Guid? userId = null)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-                return BadRequest(new { message = "Search query is required." });
-
-            var games = await _gameService.SearchGamesAsync(query, userId);
-            return Ok(games);
-        }
-
-        /// <summary>
-        /// Search games with pagination
-        /// Recommended endpoint for paginated search results
-        /// </summary>
-        [HttpGet("search/paged")]
-        [Authorize]
-        public async Task<ActionResult<PagedResponse<GameDTO>>> SearchGamesPaged(
-            [FromQuery] string query,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] Guid? userId = null)
-        {
-            if (string.IsNullOrWhiteSpace(query))
-                return BadRequest(new { message = "Search query is required." });
-
-            _logger.LogInformation("Searching games with query: {Query}, Page: {PageNumber}, Size: {PageSize}", query, pageNumber, pageSize);
-            
-            var pagedResults = await _gameService.GetPagedSearchResultsAsync(query, pageNumber, pageSize, userId);
-            return Ok(pagedResults);
-        }
-
-        [HttpGet("category/{categoryId}")]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetGamesByCategory(Guid categoryId, [FromQuery] Guid? userId = null)
-        {
-            var games = await _gameService.GetGamesByCategoryAsync(categoryId, userId);
-            return Ok(games);
-        }
-
-        /// <summary>
-        /// Get games by category with pagination
-        /// Recommended endpoint for paginated category browsing
-        /// </summary>
-        [HttpGet("category/{categoryId}/paged")]
-        public async Task<ActionResult<PagedResponse<GameDTO>>> GetGamesByCategoryPaged(
-            Guid categoryId,
-            [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 20,
-            [FromQuery] Guid? userId = null)
-        {
-            _logger.LogInformation("Fetching games by category {CategoryId} with pagination. Page: {PageNumber}, Size: {PageSize}", categoryId, pageNumber, pageSize);
-            
-            var pagedGames = await _gameService.GetPagedGamesByCategoryAsync(categoryId, pageNumber, pageSize, userId);
-            return Ok(pagedGames);
-        }
-
-        [HttpGet("free-to-play")]
-        public async Task<ActionResult<IEnumerable<GameDTO>>> GetFreeToPlayGames([FromQuery] Guid? userId = null)
-        {
-            var games = await _gameService.GetFreeToPlayGamesAsync(userId);
-            return Ok(games);
-        }
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
@@ -159,6 +90,11 @@ namespace PSstore.Controllers
                 return BadRequest(ModelState);
 
             var game = await _gameService.CreateGameAsync(createGameDTO);
+            
+            Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+            
             return CreatedAtAction(nameof(GetGameById), new { id = game.GameId }, game);
         }
 
@@ -184,6 +120,10 @@ namespace PSstore.Controllers
             if (!result)
                 return NotFound(new { message = "Game not found." });
 
+            Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+            
             return NoContent();
         }
 
@@ -195,6 +135,10 @@ namespace PSstore.Controllers
             if (!result)
                 return NotFound(new { message = "Game not found." });
 
+            Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+            Response.Headers.Pragma = "no-cache";
+            Response.Headers.Expires = "0";
+            
             return Ok(new { message = "Game restored successfully." });
         }
         [HttpGet("{id}/pricing")]

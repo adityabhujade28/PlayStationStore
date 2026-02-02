@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
@@ -6,197 +6,158 @@ import Pagination from '../components/Pagination';
 import LazyImage from '../components/LazyImage';
 import styles from './Library.module.css';
 import apiClient from '../utils/apiClient';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 function Library() {
   const { getDecodedToken, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('all');
-  const [games, setGames] = useState([]);
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [userCurrency, setUserCurrency] = useState('INR');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(12);
-  const [paginatedData, setPaginatedData] = useState({
-    items: [],
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: 12,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPreviousPage: false
+  const pageSize = 12;
+
+  const decoded = getDecodedToken();
+  const userId = decoded?.userId;
+
+  // Fetch user data + country for currency
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/users/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch user');
+      return res.json();
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
   });
 
-  useEffect(() => {
-    fetchLibrary();
-    fetchSubscriptions();
-    fetchUserCurrency();
-  }, []);
+  const { data: country } = useQuery({
+    queryKey: ['country', user?.countryId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/countries/${user.countryId}`);
+      if (!res.ok) throw new Error('Failed to fetch country');
+      return res.json();
+    },
+    enabled: !!user?.countryId,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (games.length > 0) {
-      // Paginate the games client-side or fetch from server
-      const startIndex = (currentPage - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedGames = games.slice(startIndex, endIndex);
-      const totalPages = Math.ceil(games.length / pageSize);
+  const userCurrency = country?.currencyCode || 'INR';
 
-      setPaginatedData({
-        items: paginatedGames,
-        totalCount: games.length,
-        pageNumber: currentPage,
-        pageSize: pageSize,
-        totalPages: totalPages,
-        hasNextPage: currentPage < totalPages,
-        hasPreviousPage: currentPage > 1
-      });
-    }
-  }, [currentPage, games, pageSize]);
-
-  const fetchUserCurrency = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      if (!userId) return;
-
-      const userResponse = await apiClient.get(`/users/${userId}`);
-
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-
-        if (userData.countryId) {
-          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
-
-          if (countryResponse.ok) {
-            const countryData = await countryResponse.json();
-            setUserCurrency(countryData.currency);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch user currency:', err);
-    }
-  };
-
-  const fetchLibrary = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      if (!userId) {
-        setError('User not authenticated');
-        return;
-      }
+  // Fetch user's game library
+  const { data: games = [], isLoading: gamesLoading, error: gamesError } = useQuery({
+    queryKey: ['libraryGames', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('User not authenticated');
 
       const response = await apiClient.get(`/users/${userId}/library`);
+      if (!response.ok) throw new Error('Failed to load library');
 
-      if (response.ok) {
-        const data = await response.json();
-        // Backend returns AccessibleGames array - keep all non-subscription games
-        const accessibleGames = (data.accessibleGames || []).filter(
-          game => game.accessType !== 'SUBSCRIPTION'
-        );
+      const data = await response.json();
+      const accessibleGames = (data.accessibleGames || []).filter(
+        game => game.accessType !== 'SUBSCRIPTION'
+      );
 
-        // Fetch full game details for each accessible game
-        const gamesWithDetails = await Promise.all(
-          accessibleGames.map(async (game) => {
-            try {
-              const gameResponse = await apiClient.get(`/games/${game.gameId}/access/${userId}`);
-
-              if (gameResponse.ok) {
-                const gameDetails = await gameResponse.json();
-                return {
-                  gameId: game.gameId,
-                  name: game.gameName,
-                  publisher: gameDetails.publishedBy || 'Unknown',
-                  releaseDate: gameDetails.releaseDate,
-                  isMultiplayer: gameDetails.isMultiplayer,
-                  imageUrl: gameDetails.imageUrl,
-                  accessType: game.accessType,
-                  message: game.message,
-                  purchasedOn: game.purchasedOn
-                };
-              }
-
-              // If fetch fails, return basic info
+      // Fetch full game details for each accessible game in parallel
+      const gamesWithDetails = await Promise.all(
+        accessibleGames.map(async (game) => {
+          try {
+            const gameResponse = await apiClient.get(`/games/${game.gameId}/access/${userId}`);
+            if (gameResponse.ok) {
+              const gameDetails = await gameResponse.json();
               return {
                 gameId: game.gameId,
                 name: game.gameName,
+                publisher: gameDetails.publishedBy || 'Unknown',
+                releaseDate: gameDetails.releaseDate,
+                isMultiplayer: gameDetails.isMultiplayer,
+                imageUrl: gameDetails.imageUrl,
                 accessType: game.accessType,
-                message: game.message
-              };
-            } catch (err) {
-              console.error(`Failed to fetch details for game ${game.gameId}:`, err);
-              return {
-                gameId: game.gameId,
-                name: game.gameName,
-                accessType: game.accessType,
-                message: game.message
+                message: game.message,
+                purchasedOn: game.purchasedOn
               };
             }
-          })
-        );
+            return {
+              gameId: game.gameId,
+              name: game.gameName,
+              accessType: game.accessType,
+              message: game.message
+            };
+          } catch (err) {
+            console.error(`Failed to fetch details for game ${game.gameId}:`, err);
+            return {
+              gameId: game.gameId,
+              name: game.gameName,
+              accessType: game.accessType,
+              message: game.message
+            };
+          }
+        })
+      );
 
-        setGames(gamesWithDetails);
-      } else {
-        setError('Failed to load library');
-      }
-    } catch (err) {
-      setError('Failed to load library: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return gamesWithDetails;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const fetchSubscriptions = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      if (!userId) return;
+  // Fetch active subscription
+  const { data: subscriptions = [], isLoading: subsLoading } = useQuery({
+    queryKey: ['librarySubscription', userId],
+    queryFn: async () => {
+      if (!userId) return [];
 
       const response = await apiClient.get(`/Subscriptions/user/${userId}/active`);
+      if (!response.ok) return [];
 
-      if (response.ok) {
-        const activeSubscription = await response.json();
+      const activeSubscription = await response.json();
 
-        // Enrich active subscription with plan details (plan name, included games)
-        try {
-          const plansRes = await apiClient.get(`/Subscriptions/plans`);
+      // Enrich with plan details
+      try {
+        const plansRes = await apiClient.get(`/Subscriptions/plans`);
+        if (plansRes.ok) {
+          const plans = await plansRes.json();
+          const matchingPlan = plans.find(p =>
+            p.subscriptionId === activeSubscription.subscriptionId ||
+            p.subscriptionName === activeSubscription.subscriptionName
+          );
 
-          if (plansRes.ok) {
-            const plans = await plansRes.json();
-            const matchingPlan = plans.find(p =>
-              p.subscriptionId === activeSubscription.subscriptionId ||
-              p.subscriptionName === activeSubscription.subscriptionName
-            );
-
-            if (matchingPlan) {
-              activeSubscription.subscriptionName = activeSubscription.subscriptionName || matchingPlan.subscriptionName;
-              activeSubscription.includedGamesCount = matchingPlan.includedGames?.length || 0;
-            }
+          if (matchingPlan) {
+            activeSubscription.subscriptionName = activeSubscription.subscriptionName || matchingPlan.subscriptionName;
+            activeSubscription.includedGamesCount = matchingPlan.includedGames?.length || 0;
           }
-        } catch (err) {
-          console.warn('Failed to enrich subscription with plan details:', err);
         }
-
-        setSubscriptions([activeSubscription]);
+      } catch (err) {
+        console.warn('Failed to enrich subscription with plan details:', err);
       }
-    } catch (err) {
-      console.error('Failed to fetch subscriptions:', err);
-    }
-  };
+
+      return [activeSubscription];
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const filteredGames = games.filter(game => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'purchased') return true; // Show all owned games
-    if (activeTab === 'subscription') return false; // Don't show games in subscription tab
+    if (activeTab === 'purchased') return true;
+    if (activeTab === 'subscription') return false;
     return true;
   });
+
+  // Pagination
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedGames = filteredGames.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredGames.length / pageSize);
+  const paginatedData = {
+    items: paginatedGames,
+    totalCount: filteredGames.length,
+    pageNumber: currentPage,
+    pageSize: pageSize,
+    totalPages: totalPages,
+    hasNextPage: currentPage < totalPages,
+    hasPreviousPage: currentPage > 1
+  };
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -205,7 +166,10 @@ function Library() {
 
   const showSubscriptions = activeTab === 'all' || activeTab === 'subscription';
 
-  if (loading) {
+  const isLoading = gamesLoading || subsLoading;
+  const error = gamesError;
+
+  if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.loading}>Loading your library...</div>
@@ -378,7 +342,7 @@ function Library() {
                 hasNextPage={paginatedData.hasNextPage}
                 hasPreviousPage={paginatedData.hasPreviousPage}
                 onPageChange={handlePageChange}
-                isLoading={loading}
+                isLoading={isLoading}
               />
             </>
           )}

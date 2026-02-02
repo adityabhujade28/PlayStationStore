@@ -1,146 +1,114 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/currency';
 import styles from './Subscriptions.module.css';
 import apiClient from '../utils/apiClient';
 
 function Subscriptions() {
-  const { getDecodedToken, isAuthenticated } = useAuth();
+  const { getDecodedToken } = useAuth();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState([]);
-  const [activeSubscription, setActiveSubscription] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [userCurrency, setUserCurrency] = useState('INR');
+  const queryClient = useQueryClient();
   const [subscribing, setSubscribing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState(null);
 
-  useEffect(() => {
-    fetchPlans();
-    fetchActiveSubscription();
-    fetchUserCurrency();
-  }, []);
+  const decoded = getDecodedToken();
+  const userId = decoded?.userId;
 
-  const fetchUserCurrency = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
+  // Query 1: Fetch user data - CACHED for 5 minutes
+  const { data: userInfo, isLoading: userLoading } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/users/${userId}`);
+      if (!response.ok) throw new Error('Failed to fetch user');
+      return response.json();
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-      if (!userId) return;
+  // Query 2: Fetch country/currency - CACHED for 24 hours (rarely changes)
+  const { data: countryData } = useQuery({
+    queryKey: ['country', userInfo?.countryId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/countries/${userInfo.countryId}`);
+      if (!response.ok) throw new Error('Failed to fetch country');
+      return response.json();
+    },
+    enabled: !!userInfo?.countryId,
+    staleTime: 24 * 60 * 60 * 1000, // 24 hours
+  });
 
-      const userResponse = await apiClient.get(`/users/${userId}`);
+  // Query 3: Fetch subscription plans - CACHED for 1 hour
+  const { data: plansData = [], isLoading: plansLoading } = useQuery({
+    queryKey: ['subscriptionPlans'],
+    queryFn: async () => {
+      const response = await apiClient.get(`/Subscriptions/plans`);
+      if (!response.ok) throw new Error('Failed to fetch plans');
+      return response.json();
+    },
+    staleTime: 60 * 60 * 1000, // 1 hour
+  });
 
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
+  // Query 4: Fetch pricing options for each plan - CACHED for 1 hour
+  const { data: plansWithOptions = [] } = useQuery({
+    queryKey: ['plansWithOptions', plansData, userInfo?.countryId],
+    queryFn: async () => {
+      if (!userInfo?.countryId || plansData.length === 0) return plansData;
 
-        if (userData.countryId) {
-          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
-
-          if (countryResponse.ok) {
-            const countryData = await countryResponse.json();
-            setUserCurrency(countryData.currency);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch user currency:', err);
-    }
-  };
-
-  const fetchPlans = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      // First get user's country
-      const userResponse = await apiClient.get(`/users/${userId}`);
-
-      let userCountryId = null;
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
-        userCountryId = userData.countryId;
-      }
-
-      // Get all subscription plans
-      const plansResponse = await apiClient.get(`/Subscriptions/plans`);
-
-      if (plansResponse.ok) {
-        const plansData = await plansResponse.json();
-
-        // For each plan, get pricing options for user's country
-        if (userCountryId) {
-          const plansWithPricing = await Promise.all(
-            plansData.map(async (plan) => {
-              const optionsResponse = await apiClient.get(`/Subscriptions/plans/${plan.subscriptionId}/options?countryId=${userCountryId}`);
-
-              if (optionsResponse.ok) {
-                const options = await optionsResponse.json();
-                return {
-                  ...plan,
-                  pricingOptions: options
-                };
-              }
-              return plan;
-            })
+      const plansWithPricing = await Promise.all(
+        plansData.map(async (plan) => {
+          const response = await apiClient.get(
+            `/Subscriptions/plans/${plan.subscriptionId}/options?countryId=${userInfo.countryId}`
           );
-          setPlans(plansWithPricing);
-        } else {
-          setPlans(plansData);
-        }
-      } else {
-        setError('Failed to load subscription plans');
-      }
-    } catch (err) {
-      setError('Failed to load plans: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchActiveSubscription = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      const response = await apiClient.get(`/Subscriptions/user/${userId}/active`);
-
-      if (response.ok) {
-        const data = await response.json();
-
-        // Enrich active subscription with plan details (name, included games count)
-        try {
-          const plansRes = await apiClient.get(`/Subscriptions/plans`);
-
-          if (plansRes.ok) {
-            const plans = await plansRes.json();
-            const matchingPlan = plans.find(p =>
-              p.subscriptionId === data.subscriptionId || p.subscriptionName === data.subscriptionName
-            );
-
-            if (matchingPlan) {
-              data.subscriptionName = data.subscriptionName || matchingPlan.subscriptionName;
-              data.includedGamesCount = matchingPlan.includedGames?.length || 0;
-            }
+          if (response.ok) {
+            const options = await response.json();
+            return { ...plan, pricingOptions: options };
           }
-        } catch (err) {
-          console.warn('Failed to enrich active subscription:', err);
-        }
+          return plan;
+        })
+      );
+      return plansWithPricing;
+    },
+    enabled: !!userInfo?.countryId && plansData.length > 0,
+    staleTime: 60 * 60 * 1000, // 1 hour
+  });
 
-        setActiveSubscription(data);
+  // Query 5: Fetch active subscription - CACHED for 5 minutes (might change frequently)
+  const { data: activeSubscription } = useQuery({
+    queryKey: ['activeSubscription', userId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/Subscriptions/user/${userId}/active`);
+      if (!response.ok) return null;
+      const data = await response.json();
+
+      // Enrich with plan details
+      if (plansData.length > 0) {
+        const matchingPlan = plansData.find(
+          (p) =>
+            p.subscriptionId === data.subscriptionId ||
+            p.subscriptionName === data.subscriptionName
+        );
+        if (matchingPlan) {
+          data.subscriptionName =
+            data.subscriptionName || matchingPlan.subscriptionName;
+          data.includedGamesCount = matchingPlan.includedGames?.length || 0;
+        }
       }
-    } catch (err) {
-      console.error('Failed to fetch active subscription:', err);
-    }
-  };
+      return data;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const userCurrency = countryData?.currency || 'INR';
+  const loading = userLoading || plansLoading;
 
   const handleSubscribe = async (subscriptionPlanCountryId) => {
     setSubscribing(true);
     try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
       const response = await apiClient.post(`/Subscriptions?userId=${userId}`, {
         subscriptionPlanCountryId: subscriptionPlanCountryId
       });
@@ -148,8 +116,10 @@ function Subscriptions() {
       if (response.ok) {
         const result = await response.json();
         alert(result.message || 'Successfully subscribed!');
-        await fetchActiveSubscription();
+        // Invalidate the cache so it refetches fresh data
+        queryClient.invalidateQueries({ queryKey: ['activeSubscription', userId] });
         setSelectedPlan(null);
+        setSelectedDuration(null);
       } else {
         const error = await response.json();
         alert(error.message || 'Subscription failed');
@@ -168,20 +138,6 @@ function Subscriptions() {
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.error}>{error}</div>
-      </div>
-    );
-  }
-
-  // Compute games per plan for quick reference
-  const gamesPerPlan = plans.reduce((acc, p) => {
-    acc[p.subscriptionName] = p.includedGames?.length || 0;
-    return acc;
-  }, {});
 
   return (
     <div className={styles.container}>
@@ -228,7 +184,7 @@ function Subscriptions() {
       )}
 
       <div className={styles.plansGrid}>
-        {plans.map((plan) => {
+        {plansWithOptions.map((plan) => {
           const pricingOptions = plan.pricingOptions || [];
           const monthlyOption = pricingOptions.find(opt => opt.durationMonths === 1);
           const monthlyPrice = monthlyOption?.price || 0;

@@ -345,7 +345,8 @@ public static class DbInitializer
                 .RuleFor(g => g.ReleaseDate, f => f.Date.Past(5))
                 .RuleFor(g => g.FreeToPlay, f => f.Random.Bool(0.1f))
                 .RuleFor(g => g.BasePrice, (f, g) => g.FreeToPlay ? null : decimal.Parse(f.Commerce.Price(1000, 5000)))
-                .RuleFor(g => g.IsMultiplayer, f => f.Random.Bool());
+                .RuleFor(g => g.IsMultiplayer, f => f.Random.Bool())
+                .RuleFor(g => g.ImageUrl, f => f.Image.PicsumUrl()); // Add random image URL
 
             var randomGames = gameFaker.Generate(30);
             randomGames.ForEach(g => g.GameName = g.GameName + " " + g.GameId.ToString().Substring(0, 4));

@@ -1,43 +1,27 @@
 using Bogus;
 using FluentAssertions;
-using Moq;
+using Microsoft.EntityFrameworkCore;
 using PSstore.DTOs;
-using PSstore.Interfaces;
 using PSstore.Models;
 using PSstore.Services;
+using PSstore_Backend.Tests.Helpers;
 
 namespace PSstore_Backend.Tests.Services
 {
-    public class SubscriptionServiceTests
+    public class SubscriptionServiceTests : IntegrationTestBase
     {
-        private readonly Mock<IUserSubscriptionPlanRepository> _mockUserSubRepo;
-        private readonly Mock<ISubscriptionPlanRepository> _mockSubPlanRepo;
-        private readonly Mock<ISubscriptionPlanCountryRepository> _mockPlanCountryRepo;
-        private readonly Mock<IUserRepository> _mockUserRepo;
-        private readonly Mock<ICountryRepository> _mockCountryRepo;
-        private readonly Mock<IGameSubscriptionRepository> _mockGameSubRepo;
         private readonly SubscriptionService _subscriptionService;
-        private readonly Faker _faker;
 
         public SubscriptionServiceTests()
         {
-            _mockUserSubRepo = new Mock<IUserSubscriptionPlanRepository>();
-            _mockSubPlanRepo = new Mock<ISubscriptionPlanRepository>();
-            _mockPlanCountryRepo = new Mock<ISubscriptionPlanCountryRepository>();
-            _mockUserRepo = new Mock<IUserRepository>();
-            _mockCountryRepo = new Mock<ICountryRepository>();
-            _mockGameSubRepo = new Mock<IGameSubscriptionRepository>();
-
             _subscriptionService = new SubscriptionService(
-                _mockUserSubRepo.Object,
-                _mockSubPlanRepo.Object,
-                _mockPlanCountryRepo.Object,
-                _mockUserRepo.Object,
-                _mockCountryRepo.Object,
-                _mockGameSubRepo.Object
+                UserSubscriptionPlanRepository,
+                SubscriptionPlanRepository,
+                SubscriptionPlanCountryRepository,
+                UserRepository,
+                CountryRepository,
+                GameSubscriptionRepository
             );
-
-            _faker = new Faker();
         }
 
         [Fact]
@@ -45,20 +29,43 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
+            var countryId = Guid.NewGuid();
+            var subscriptionId = Guid.NewGuid();
             var planCountryId = Guid.NewGuid();
-            var subDTO = new CreateSubscriptionDTO { SubscriptionPlanCountryId = planCountryId };
 
-            var user = new User { UserId = userId };
-            var planCountry = new SubscriptionPlanCountry 
+            var user = new User 
             { 
+                UserId = userId,
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 25,
+                CountryId = countryId,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            var subscriptionPlan = new SubscriptionPlan
+            {
+                SubscriptionId = subscriptionId,
+                SubscriptionType = "Premium"
+            };
+
+            var planCountry = new SubscriptionPlanCountry
+            {
                 SubscriptionPlanCountryId = planCountryId,
+                SubscriptionId = subscriptionId,
+                CountryId = countryId,
                 DurationMonths = 12,
                 Price = 59.99m
             };
 
-            _mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync((UserSubscriptionPlan?)null);
-            _mockPlanCountryRepo.Setup(r => r.GetByIdAsync(planCountryId)).ReturnsAsync(planCountry);
+            await Context.Users.AddAsync(user);
+            await Context.SubscriptionPlans.AddAsync(subscriptionPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(planCountry);
+            await Context.SaveChangesAsync();
+
+            var subDTO = new CreateSubscriptionDTO { SubscriptionPlanCountryId = planCountryId };
 
             // Act
             var result = await _subscriptionService.SubscribeAsync(userId, subDTO);
@@ -69,12 +76,10 @@ namespace PSstore_Backend.Tests.Services
             result.DurationMonths.Should().Be(12);
             result.Price.Should().Be(59.99m);
 
-            _mockUserSubRepo.Verify(r => r.AddAsync(It.Is<UserSubscriptionPlan>(s => 
-                s.UserId == userId && 
-                s.SubscriptionPlanCountryId == planCountryId &&
-                s.PlanEndDate > s.PlanStartDate
-            )), Times.Once);
-            _mockUserSubRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+            var savedSubscription = await Context.UserSubscriptionPlans
+                .FirstOrDefaultAsync(s => s.UserId == userId);
+            savedSubscription.Should().NotBeNull();
+            savedSubscription!.SubscriptionPlanCountryId.Should().Be(planCountryId);
         }
 
         [Fact]
@@ -82,8 +87,7 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            var subDTO = new CreateSubscriptionDTO();
-            _mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((User?)null);
+            var subDTO = new CreateSubscriptionDTO { SubscriptionPlanCountryId = Guid.NewGuid() };
 
             // Act
             var result = await _subscriptionService.SubscribeAsync(userId, subDTO);
@@ -98,16 +102,53 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            var subDTO = new CreateSubscriptionDTO();
-            var user = new User { UserId = userId };
-            var activeSub = new UserSubscriptionPlan 
-            { 
-                UserId = userId, 
-                PlanEndDate = DateTime.UtcNow.AddMonths(1) 
+            var countryId = Guid.NewGuid();
+            var user = new User
+            {
+                UserId = userId,
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 25,
+                CountryId = countryId,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
             };
 
-            _mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync(activeSub);
+            var existingPlanCountryId = Guid.NewGuid();
+            var existingSubId = Guid.NewGuid();
+            
+            var existingSubPlan = new SubscriptionPlan
+            {
+                SubscriptionId = existingSubId,
+                SubscriptionType = "Existing"
+            };
+            
+            var existingPlanCountry = new SubscriptionPlanCountry
+            {
+                SubscriptionPlanCountryId = existingPlanCountryId,
+                SubscriptionId = existingSubId,
+                CountryId = countryId,
+                DurationMonths = 12,
+                Price = 29.99m
+            };
+            
+            var activeSub = new UserSubscriptionPlan
+            {
+                UserSubscriptionId = Guid.NewGuid(),
+                UserId = userId,
+                SubscriptionPlanCountryId = existingPlanCountryId,
+                PlanStartDate = DateTime.UtcNow.AddMonths(-1),
+                PlanEndDate = DateTime.UtcNow.AddMonths(11)
+            };
+
+            await Context.Users.AddAsync(user);
+            await Context.SubscriptionPlans.AddAsync(existingSubPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(existingPlanCountry);
+            await Context.UserSubscriptionPlans.AddAsync(activeSub);
+            await Context.SaveChangesAsync();
+
+            var subDTO = new CreateSubscriptionDTO { SubscriptionPlanCountryId = Guid.NewGuid() };
 
             // Act
             var result = await _subscriptionService.SubscribeAsync(userId, subDTO);
@@ -122,12 +163,22 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            var subDTO = new CreateSubscriptionDTO { SubscriptionPlanCountryId = Guid.NewGuid() };
-            var user = new User { UserId = userId };
+            var user = new User
+            {
+                UserId = userId,
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 25,
+                CountryId = Guid.NewGuid(),
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
 
-            _mockUserRepo.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync(user);
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync((UserSubscriptionPlan?)null);
-            _mockPlanCountryRepo.Setup(r => r.GetByIdAsync(subDTO.SubscriptionPlanCountryId)).ReturnsAsync((SubscriptionPlanCountry?)null);
+            await Context.Users.AddAsync(user);
+            await Context.SaveChangesAsync();
+
+            var subDTO = new CreateSubscriptionDTO { SubscriptionPlanCountryId = Guid.NewGuid() };
 
             // Act
             var result = await _subscriptionService.SubscribeAsync(userId, subDTO);
@@ -142,19 +193,37 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
+            var subscriptionId = Guid.NewGuid();
+            var planCountryId = Guid.NewGuid();
+
+            var subscriptionPlan = new SubscriptionPlan
+            {
+                SubscriptionId = subscriptionId,
+                SubscriptionType = "Premium"
+            };
+
+            var planCountry = new SubscriptionPlanCountry
+            {
+                SubscriptionPlanCountryId = planCountryId,
+                SubscriptionId = subscriptionId,
+                CountryId = Guid.NewGuid(),
+                DurationMonths = 12,
+                Price = 59.99m
+            };
+
             var activeSub = new UserSubscriptionPlan
             {
                 UserSubscriptionId = Guid.NewGuid(),
                 UserId = userId,
+                SubscriptionPlanCountryId = planCountryId,
                 PlanStartDate = DateTime.UtcNow.AddMonths(-1),
-                PlanEndDate = DateTime.UtcNow.AddMonths(11),
-                SubscriptionPlanCountry = new SubscriptionPlanCountry
-                {
-                    SubscriptionPlan = new SubscriptionPlan { SubscriptionType = "Premium" }
-                }
+                PlanEndDate = DateTime.UtcNow.AddMonths(11)
             };
 
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync(activeSub);
+            await Context.SubscriptionPlans.AddAsync(subscriptionPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(planCountry);
+            await Context.UserSubscriptionPlans.AddAsync(activeSub);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _subscriptionService.GetActiveSubscriptionAsync(userId);
@@ -166,30 +235,64 @@ namespace PSstore_Backend.Tests.Services
         }
 
         [Fact]
+        public async Task GetActiveSubscriptionAsync_ShouldReturnNull_WhenNoActiveSubscription()
+        {
+            // Arrange
+            var userId = Guid.NewGuid();
+
+            // Act
+            var result = await _subscriptionService.GetActiveSubscriptionAsync(userId);
+
+            // Assert
+            result.Should().BeNull();
+        }
+
+        [Fact]
         public async Task CancelSubscriptionAsync_ShouldCancel_WhenActiveExists()
         {
             // Arrange
             var userId = Guid.NewGuid();
+            var subId = Guid.NewGuid();
+            var planCountryId = Guid.NewGuid();
+            
+            var subPlan = new SubscriptionPlan
+            {
+                SubscriptionId = subId,
+                SubscriptionType = "Premium"
+            };
+            
+            var planCountry = new SubscriptionPlanCountry
+            {
+                SubscriptionPlanCountryId = planCountryId,
+                SubscriptionId = subId,
+                CountryId = Guid.NewGuid(),
+                DurationMonths = 12,
+                Price = 59.99m
+            };
+            
             var activeSub = new UserSubscriptionPlan
             {
                 UserSubscriptionId = Guid.NewGuid(),
                 UserId = userId,
-                PlanEndDate = DateTime.UtcNow.AddMonths(6)
+                SubscriptionPlanCountryId = planCountryId,
+                PlanStartDate = DateTime.UtcNow.AddMonths(-1),
+                PlanEndDate = DateTime.UtcNow.AddMonths(11)
             };
 
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync(activeSub);
+            await Context.SubscriptionPlans.AddAsync(subPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(planCountry);
+            await Context.UserSubscriptionPlans.AddAsync(activeSub);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _subscriptionService.CancelSubscriptionAsync(userId);
 
             // Assert
             result.Should().BeTrue();
-            
+
             // Verify end date was updated to roughly now (within 1 second)
-            activeSub.PlanEndDate.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-            
-            _mockUserSubRepo.Verify(r => r.Update(activeSub), Times.Once);
-            _mockUserSubRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+            var updated = await Context.UserSubscriptionPlans.FindAsync(activeSub.UserSubscriptionId);
+            updated!.PlanEndDate.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         }
 
         [Fact]
@@ -197,7 +300,6 @@ namespace PSstore_Backend.Tests.Services
         {
             // Arrange
             var userId = Guid.NewGuid();
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync((UserSubscriptionPlan?)null);
 
             // Act
             var result = await _subscriptionService.CancelSubscriptionAsync(userId);
@@ -216,7 +318,8 @@ namespace PSstore_Backend.Tests.Services
                 new SubscriptionPlan { SubscriptionId = Guid.NewGuid(), SubscriptionType = "Extra" }
             };
 
-            _mockSubPlanRepo.Setup(r => r.GetAllPlansWithDetailsAsync()).ReturnsAsync(plans);
+            await Context.SubscriptionPlans.AddRangeAsync(plans);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _subscriptionService.GetAllSubscriptionPlansAsync();
@@ -224,6 +327,7 @@ namespace PSstore_Backend.Tests.Services
             // Assert
             result.Should().HaveCount(2);
             result.Select(p => p.SubscriptionName).Should().Contain("Essential");
+            result.Select(p => p.SubscriptionName).Should().Contain("Extra");
         }
 
         [Fact]
@@ -232,15 +336,31 @@ namespace PSstore_Backend.Tests.Services
             // Arrange
             var subId = Guid.NewGuid();
             var countryId = Guid.NewGuid();
+            var otherSubId = Guid.NewGuid();
             
-            var allOptions = new List<SubscriptionPlanCountry>
+            var subPlan = new SubscriptionPlan
             {
-                new SubscriptionPlanCountry { SubscriptionId = subId, CountryId = countryId, Price = 10 },
-                new SubscriptionPlanCountry { SubscriptionId = subId, CountryId = countryId, Price = 20 },
-                new SubscriptionPlanCountry { SubscriptionId = Guid.NewGuid(), CountryId = countryId, Price = 30 } // Different sub
+                SubscriptionId = subId,
+                SubscriptionType = "Premium"
+            };
+            
+            var otherSubPlan = new SubscriptionPlan
+            {
+                SubscriptionId = otherSubId,
+                SubscriptionType = "Basic"
             };
 
-            _mockPlanCountryRepo.Setup(r => r.GetPlansByCountryAsync(countryId)).ReturnsAsync(allOptions);
+            var options = new List<SubscriptionPlanCountry>
+            {
+                new SubscriptionPlanCountry { SubscriptionPlanCountryId = Guid.NewGuid(), SubscriptionId = subId, CountryId = countryId, DurationMonths = 1, Price = 10 },
+                new SubscriptionPlanCountry { SubscriptionPlanCountryId = Guid.NewGuid(), SubscriptionId = subId, CountryId = countryId, DurationMonths = 12, Price = 100 },
+                new SubscriptionPlanCountry { SubscriptionPlanCountryId = Guid.NewGuid(), SubscriptionId = otherSubId, CountryId = countryId, DurationMonths = 1, Price = 30 } // Different sub
+            };
+
+            await Context.SubscriptionPlans.AddAsync(subPlan);
+            await Context.SubscriptionPlans.AddAsync(otherSubPlan);
+            await Context.SubscriptionPlanCountries.AddRangeAsync(options);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _subscriptionService.GetSubscriptionPlanOptionsAsync(subId, countryId);
@@ -249,44 +369,86 @@ namespace PSstore_Backend.Tests.Services
             result.Should().HaveCount(2);
             result.All(o => o.SubscriptionId == subId).Should().BeTrue();
         }
-        [Fact]
-        public async Task GetActiveSubscriptionAsync_ShouldReturnNull_WhenNoActiveSubscription()
-        {
-            // Arrange
-            var userId = Guid.NewGuid();
-            _mockUserSubRepo.Setup(r => r.GetActiveSubscriptionAsync(userId)).ReturnsAsync((UserSubscriptionPlan?)null);
-
-            // Act
-            var result = await _subscriptionService.GetActiveSubscriptionAsync(userId);
-
-            // Assert
-            result.Should().BeNull();
-        }
 
         [Fact]
         public async Task GetUserSubscriptionHistoryAsync_ShouldReturnHistory()
         {
             // Arrange
             var userId = Guid.NewGuid();
+            var subscriptionId = Guid.NewGuid();
+            var planCountryId = Guid.NewGuid();
+            var countryId = Guid.NewGuid();
+            var regionId = Guid.NewGuid();
+
+            var region = new Region
+            {
+                RegionId = regionId,
+                RegionName = "Test Region"
+            };
+
+            var user = new User
+            {
+                UserId = userId,
+                UserName = Faker.Internet.UserName(),
+                UserEmail = Faker.Internet.Email(),
+                UserPassword = BCrypt.Net.BCrypt.HashPassword("password"),
+                Age = 25,
+                CountryId = countryId,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            var country = new Country
+            {
+                CountryId = countryId,
+                CountryCode = "US",
+                CountryName = "Test Country",
+                Currency = "USD",
+                RegionId = regionId
+            };
+
+            var subscriptionPlan = new SubscriptionPlan
+            {
+                SubscriptionId = subscriptionId,
+                SubscriptionType = "Premium"
+            };
+
+            var planCountry = new SubscriptionPlanCountry
+            {
+                SubscriptionPlanCountryId = planCountryId,
+                SubscriptionId = subscriptionId,
+                CountryId = countryId,
+                DurationMonths = 12,
+                Price = 59.99m
+            };
+
             var history = new List<UserSubscriptionPlan>
             {
-                new UserSubscriptionPlan 
-                { 
+                new UserSubscriptionPlan
+                {
                     UserSubscriptionId = Guid.NewGuid(),
                     UserId = userId,
+                    SubscriptionPlanCountryId = planCountryId,
                     PlanStartDate = DateTime.UtcNow.AddYears(-1),
                     PlanEndDate = DateTime.UtcNow.AddMonths(-6)
                 },
-                new UserSubscriptionPlan 
-                { 
+                new UserSubscriptionPlan
+                {
                     UserSubscriptionId = Guid.NewGuid(),
                     UserId = userId,
+                    SubscriptionPlanCountryId = planCountryId,
                     PlanStartDate = DateTime.UtcNow.AddMonths(-1),
-                    PlanEndDate = DateTime.UtcNow.AddMonths(1) // Active
+                    PlanEndDate = DateTime.UtcNow.AddMonths(11) // Active
                 }
             };
 
-            _mockUserSubRepo.Setup(r => r.GetUserSubscriptionsAsync(userId)).ReturnsAsync(history);
+            await Context.Regions.AddAsync(region);
+            await Context.Users.AddAsync(user);
+            await Context.Countries.AddAsync(country);
+            await Context.SubscriptionPlans.AddAsync(subscriptionPlan);
+            await Context.SubscriptionPlanCountries.AddAsync(planCountry);
+            await Context.UserSubscriptionPlans.AddRangeAsync(history);
+            await Context.SaveChangesAsync();
 
             // Act
             var result = await _subscriptionService.GetUserSubscriptionHistoryAsync(userId);

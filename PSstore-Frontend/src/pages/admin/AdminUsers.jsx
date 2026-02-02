@@ -1,16 +1,37 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Pagination from '../../components/Pagination';
 import apiClient from '../../utils/apiClient';
-import styles from './AdminGames.module.css'; // Reusing common admin styles
+import styles from './AdminGames.module.css';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import UserDetailsModal from './UserDetailsModal';
 
 function AdminUsers() {
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize] = useState(25);
+    const pageSize = 25;
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedCountry, setSelectedCountry] = useState('');
+    const queryClient = useQueryClient();
 
-    const [paginatedData, setPaginatedData] = useState({
+    // Modal state
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [modalSubscription, setModalSubscription] = useState(null);
+    const [modalSubscriptionPlan, setModalSubscriptionPlan] = useState(null);
+    const [modalCountry, setModalCountry] = useState(null);
+
+    // Fetch countries for filter dropdown
+    const { data: allCountries = [] } = useQuery({
+        queryKey: ['countries'],
+        queryFn: async () => {
+            const response = await apiClient.get('/countries');
+            if (!response.ok) throw new Error('Failed to fetch countries');
+            return response.json();
+        },
+        staleTime: 60 * 60 * 1000, // 1 hour cache
+    });
+
+    // Fetch users with pagination + search - query updates when page or search changes
+    const { data: paginatedData = {
         items: [],
         totalCount: 0,
         pageNumber: 1,
@@ -18,20 +39,9 @@ function AdminUsers() {
         totalPages: 0,
         hasNextPage: false,
         hasPreviousPage: false
-    });
-    const [countries, setCountries] = useState({});
-
-    useEffect(() => {
-        setCurrentPage(1); // Reset to page 1 when search changes
-    }, [searchTerm]);
-
-    useEffect(() => {
-        fetchUsers();
-    }, [currentPage, searchTerm]);
-
-    const fetchUsers = async () => {
-        setLoading(true);
-        try {
+    }, isLoading, error } = useQuery({
+        queryKey: ['adminUsers', { page: currentPage, pageSize, search: searchTerm, country: selectedCountry }],
+        queryFn: async () => {
             const params = new URLSearchParams({
                 pageNumber: currentPage,
                 pageSize: pageSize,
@@ -43,36 +53,56 @@ function AdminUsers() {
                 params.set('searchTerm', searchTerm);
             }
 
-            const response = await apiClient.get(`/users/paged?${params.toString()}`);
-            if (response.ok) {
-                const data = await response.json();
-                setPaginatedData(data);
-
-                // Fetch country names for unique country IDs
-                const uniqueCountryIds = [...new Set(data.items.map(u => u.countryId).filter(Boolean))];
-                const countryMap = {};
-                
-                for (const countryId of uniqueCountryIds) {
-                    try {
-                        const countryRes = await apiClient.get(`/countries/${countryId}`);
-                        if (countryRes.ok) {
-                            const countryData = await countryRes.json();
-                            countryMap[countryId] = countryData.countryName;
-                        }
-                    } catch (err) {
-                        console.error(`Failed to fetch country ${countryId}:`, err);
-                    }
-                }
-                setCountries(countryMap);
-            } else {
-                setError('Failed to fetch users');
+            if (selectedCountry) {
+                params.set('countryId', selectedCountry);
             }
-        } catch (err) {
-            setError('Error loading users');
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
+
+            const response = await apiClient.get(`/users/paged?${params.toString()}`);
+            if (!response.ok) throw new Error('Failed to fetch users');
+            return response.json();
+        },
+        staleTime: 5 * 60 * 1000, // 5 min cache
+        keepPreviousData: true, // Show old data while fetching new page
+    });
+
+    // Fetch countries for all user IDs in current page
+    const uniqueCountryIds = paginatedData.items
+        ? [...new Set(paginatedData.items.map(u => u.countryId).filter(Boolean))]
+        : [];
+
+    const { data: countryNames = {} } = useQuery({
+        queryKey: ['countries', uniqueCountryIds.join(',')],
+        queryFn: async () => {
+            const countryMap = {};
+            for (const countryId of uniqueCountryIds) {
+                try {
+                    const countryRes = await apiClient.get(`/countries/${countryId}`);
+                    if (countryRes.ok) {
+                        const countryData = await countryRes.json();
+                        countryMap[countryId] = countryData.countryName;
+                    }
+                } catch (err) {
+                    console.error(`Failed to fetch country ${countryId}:`, err);
+                }
+            }
+            return countryMap;
+        },
+        enabled: uniqueCountryIds.length > 0,
+        staleTime: 10 * 60 * 1000, // 10 min cache
+    });
+
+    const handlePageChange = (page) => {
+        setCurrentPage(page);
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1); // Reset to first page on search
+    };
+
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setCurrentPage(1);
     };
 
     const handleBlock = async (userId) => {
@@ -81,12 +111,14 @@ function AdminUsers() {
         try {
             const response = await apiClient.delete(`/users/${userId}`);
             if (response.ok) {
-                fetchUsers();
+                queryClient.invalidateQueries(['adminUsers']);
+                alert('User blocked successfully!');
             } else {
-                alert('Failed to block user');
+                alert('Failed to block user.');
             }
         } catch (error) {
             console.error('Error blocking user:', error);
+            alert('An error occurred while blocking the user.');
         }
     };
 
@@ -96,29 +128,82 @@ function AdminUsers() {
         try {
             const response = await apiClient.post(`/users/${userId}/restore`);
             if (response.ok) {
-                fetchUsers();
+                queryClient.invalidateQueries(['adminUsers']);
+                alert('User restored successfully!');
             } else {
-                alert('Failed to restore user');
+                alert('Failed to restore user.');
             }
         } catch (error) {
             console.error('Error restoring user:', error);
+            alert('An error occurred while restoring the user.');
         }
     };
 
-    const handlePageChange = (pageNumber) => {
-        setCurrentPage(pageNumber);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    const handleUserClick = async (user) => {
+        console.log('User clicked:', user);
+        setSelectedUser(user);
+        setShowModal(true);
+
+        // Fetch subscription details
+        try {
+            console.log('Fetching subscription for user:', user.userId);
+            const subResponse = await apiClient.get(`/Subscriptions/user/${user.userId}/active`);
+            console.log('Subscription response:', subResponse.status, subResponse.ok);
+
+            // 404 means no active subscription, not an error
+            if (subResponse.status === 404) {
+                console.log('No active subscription found (404)');
+                setModalSubscription(null);
+                setModalSubscriptionPlan(null);
+            } else if (subResponse.ok) {
+                const subData = await subResponse.json();
+                console.log('Subscription data received:', subData);
+                setModalSubscription(subData);
+
+                // Fetch subscription plan details
+                const plansResponse = await apiClient.get('/Subscriptions/plans');
+                if (plansResponse.ok) {
+                    const plans = await plansResponse.json();
+                    console.log('All subscription plans:', plans);
+                    // Match by subscription name since UserSubscriptionDTO includes subscriptionName
+                    const plan = plans.find(p => p.subscriptionName === subData.subscriptionName);
+                    console.log('Matched plan for subscription:', plan);
+                    setModalSubscriptionPlan(plan);
+                }
+            } else {
+                console.log('Unexpected response status:', subResponse.status);
+                setModalSubscription(null);
+                setModalSubscriptionPlan(null);
+            }
+        } catch (error) {
+            console.error('Error fetching subscription:', error);
+            setModalSubscription(null);
+            setModalSubscriptionPlan(null);
+        }
+
+        // Fetch country details
+        try {
+            const countryResponse = await apiClient.get(`/countries/${user.countryId}`);
+            if (countryResponse.ok) {
+                const countryData = await countryResponse.json();
+                console.log('Country data:', countryData);
+                setModalCountry(countryData.countryName);
+            }
+        } catch (error) {
+            console.error('Error fetching country:', error);
+            setModalCountry(null);
+        }
     };
 
-    const handleSearchChange = (e) => {
-        setSearchTerm(e.target.value);
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setSelectedUser(null);
+        setModalSubscription(null);
+        setModalSubscriptionPlan(null);
+        setModalCountry(null);
     };
 
-    const handleClearSearch = () => {
-        setSearchTerm('');
-    };
-
-    if (error) return <div className={styles.container} style={{ color: 'red' }}>{error}</div>;
+    if (error) return <div className={styles.container} style={{ color: 'red' }}>{error.message}</div>;
 
     return (
         <div className={styles.container}>
@@ -126,43 +211,85 @@ function AdminUsers() {
                 <h1 className={styles.title}>User Management</h1>
             </div>
 
-            {/* Search Bar */}
-            <div style={{ marginBottom: '1.5rem' }}>
-                <input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        borderRadius: '6px',
-                        border: '2px solid #e0e0e0',
-                        fontSize: '1rem',
-                        boxSizing: 'border-box'
-                    }}
-                />
-                {searchTerm && (
-                    <button
-                        onClick={handleClearSearch}
+            {/* Search and Filter Bar */}
+            <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1', minWidth: '250px' }}>
+                    <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={searchTerm}
+                        onChange={handleSearchChange}
                         style={{
-                            marginTop: '0.5rem',
-                            padding: '0.5rem 1rem',
-                            background: '#667eea',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
+                            width: '100%',
+                            padding: '0.75rem',
+                            borderRadius: '6px',
+                            border: '2px solid #e0e0e0',
+                            fontSize: '1rem',
+                            boxSizing: 'border-box'
+                        }}
+                    />
+                </div>
+                <div style={{ minWidth: '200px' }}>
+                    <select
+                        value={selectedCountry}
+                        onChange={(e) => {
+                            setSelectedCountry(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            borderRadius: '6px',
+                            border: '2px solid #e0e0e0',
+                            fontSize: '1rem',
+                            backgroundColor: 'white',
                             cursor: 'pointer'
                         }}
                     >
-                        Clear Search
+                        <option value="">All Countries</option>
+                        {allCountries.map(country => (
+                            <option key={country.countryId} value={country.countryId}>
+                                {country.countryName}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                {(searchTerm || selectedCountry) && (
+                    <button
+                        onClick={() => {
+                            setSearchTerm('');
+                            setSelectedCountry('');
+                            setCurrentPage(1);
+                        }}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            borderRadius: '6px',
+                            border: 'none',
+                            backgroundColor: '#6c757d',
+                            color: 'white',
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            fontWeight: '500'
+                        }}
+                    >
+                        Clear Filters
                     </button>
                 )}
             </div>
+            {(searchTerm || selectedCountry) && (
+                <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.95rem' }}>
+                    Showing results for: {searchTerm && `"${searchTerm}"`} {searchTerm && selectedCountry && '+ '}
+                    {selectedCountry && `${allCountries.find(c => c.countryId === selectedCountry)?.countryName || 'Selected Country'}`}
+                </p>
+            )}
 
-            {loading && <div className={styles.loading}>Loading users...</div>}
-
-            {!loading && (
+            {isLoading ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>Loading users...</div>
+            ) : paginatedData.items.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                    No users found{searchTerm || selectedCountry ? ' matching your filters' : ''}.
+                </div>
+            ) : (
                 <>
                     <div className={styles.tableContainer}>
                         <table className={styles.table}>
@@ -172,7 +299,6 @@ function AdminUsers() {
                                     <th>Email</th>
                                     <th>Age</th>
                                     <th>Country</th>
-                                    <th>Subscription</th>
                                     <th>Status</th>
                                     <th>Joined</th>
                                     <th>Actions</th>
@@ -180,21 +306,19 @@ function AdminUsers() {
                             </thead>
                             <tbody>
                                 {paginatedData.items.map((user) => (
-                                    <tr key={user.userId} style={{ opacity: user.isDeleted ? 0.5 : 1 }}>
+                                    <tr
+                                        key={user.userId}
+                                        style={{ opacity: user.isDeleted ? 0.5 : 1, cursor: 'pointer' }}
+                                        onClick={() => handleUserClick(user)}
+                                        title="Click to view details"
+                                    >
                                         <td>{user.userName}</td>
                                         <td>{user.userEmail}</td>
                                         <td>{user.age}</td>
                                         <td>
                                             <span style={{ fontWeight: '500' }}>
-                                                {countries[user.countryId] || 'N/A'}
+                                                {countryNames[user.countryId] || 'N/A'}
                                             </span>
-                                        </td>
-                                        <td>
-                                            {user.subscriptionStatus ? (
-                                                <span style={{ color: '#4db8ff', fontWeight: 'bold' }}>✓ Active</span>
-                                            ) : (
-                                                <span style={{ color: '#999' }}>— None</span>
-                                            )}
                                         </td>
                                         <td>
                                             {user.isDeleted ? (
@@ -207,16 +331,22 @@ function AdminUsers() {
                                         <td>
                                             {!user.isDeleted ? (
                                                 <button
-                                                    onClick={() => handleBlock(user.userId)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleBlock(user.userId);
+                                                    }}
                                                     className={`${styles.actionButton} ${styles.deleteBtn}`}
                                                 >
                                                     Block
                                                 </button>
                                             ) : (
                                                 <button
-                                                    onClick={() => handleRestore(user.userId)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRestore(user.userId);
+                                                    }}
                                                     className={`${styles.actionButton}`}
-                                                    style={{ backgroundColor: '#0070d1', color: 'white' }}
+                                                    style={{ backgroundColor: '#28a745' }}
                                                 >
                                                     Restore
                                                 </button>
@@ -228,20 +358,25 @@ function AdminUsers() {
                         </table>
                     </div>
 
-                    {/* Pagination Controls */}
                     <Pagination
                         currentPage={paginatedData.pageNumber}
                         totalPages={paginatedData.totalPages}
-                        hasNextPage={paginatedData.hasNextPage}
-                        hasPreviousPage={paginatedData.hasPreviousPage}
                         onPageChange={handlePageChange}
-                        isLoading={loading}
                     />
                 </>
+            )}
+
+            {showModal && (
+                <UserDetailsModal
+                    user={selectedUser}
+                    subscription={modalSubscription}
+                    subscriptionPlan={modalSubscriptionPlan}
+                    country={modalCountry}
+                    onClose={handleCloseModal}
+                />
             )}
         </div>
     );
 }
-
 
 export default AdminUsers;

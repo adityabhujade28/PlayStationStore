@@ -41,14 +41,6 @@ namespace PSstore.Controllers
             return Ok(user);
         }
 
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<UserDTO>>> GetAllUsers()
-        {
-            var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
-        }
-
         /// <summary>
         /// Get paginated users with optional filtering and sorting
         /// Recommended endpoint for admin user management with pagination

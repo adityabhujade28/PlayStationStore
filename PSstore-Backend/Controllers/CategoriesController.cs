@@ -9,70 +9,29 @@ namespace PSstore.Controllers
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
+        private readonly ILogger<CategoriesController> _logger;
 
-        public CategoriesController(ICategoryService categoryService)
+        public CategoriesController(ICategoryService categoryService, ILogger<CategoriesController> logger)
         {
             _categoryService = categoryService;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<CategoryDTO>>> GetAllCategories([FromQuery] bool includeDeleted = false)
         {
-            var categories = await _categoryService.GetAllCategoriesAsync(includeDeleted);
-            return Ok(categories);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<CategoryDTO>> GetCategoryById(Guid id)
-        {
-            var category = await _categoryService.GetCategoryByIdAsync(id);
-            if (category == null)
-                return NotFound(new { message = "Category not found." });
-
-            return Ok(category);
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<CategoryDTO>> CreateCategory([FromBody] CreateCategoryDTO createCategoryDTO)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var category = await _categoryService.CreateCategoryAsync(createCategoryDTO);
-            return CreatedAtAction(nameof(GetCategoryById), new { id = category.CategoryId }, category);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<ActionResult<CategoryDTO>> UpdateCategory(Guid id, [FromBody] UpdateCategoryDTO updateCategoryDTO)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            var category = await _categoryService.UpdateCategoryAsync(id, updateCategoryDTO);
-            if (category == null)
-                return NotFound(new { message = "Category not found." });
-
-            return Ok(category);
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> SoftDeleteCategory(Guid id)
-        {
-            var result = await _categoryService.SoftDeleteCategoryAsync(id);
-            if (!result)
-                return NotFound(new { message = "Category not found." });
-
-            return NoContent();
-        }
-
-        [HttpPost("{id}/restore")]
-        public async Task<ActionResult> RestoreCategory(Guid id)
-        {
-            var result = await _categoryService.RestoreCategory(id);
-            if (!result)
-                return NotFound(new { message = "Category not found." });
-
-            return Ok(new { message = "Category restored successfully." });
+            _logger.LogInformation("Fetching all categories. IncludeDeleted: {IncludeDeleted}", includeDeleted);
+            try
+            {
+                var categories = await _categoryService.GetAllCategoriesAsync(includeDeleted);
+                _logger.LogInformation("Categories retrieved successfully");
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving categories");
+                throw;
+            }
         }
     }
 }

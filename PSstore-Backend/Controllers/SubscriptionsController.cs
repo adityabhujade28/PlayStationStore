@@ -28,13 +28,15 @@ namespace PSstore.Controllers
             return Ok(plans);
         }
 
-        [HttpGet("plans/{subscriptionId}/options")]
+        [HttpGet("plans/{planId}/options")]
         [Authorize]
-        public async Task<ActionResult<IEnumerable<SubscriptionPlanCountryDTO>>> GetPlanOptions(Guid subscriptionId, [FromQuery] Guid countryId)
+        public async Task<ActionResult<IEnumerable<SubscriptionPlanCountryDTO>>> GetPlanOptions(Guid planId, [FromQuery] Guid countryId)
         {
-            var options = await _subscriptionService.GetSubscriptionPlanOptionsAsync(subscriptionId, countryId);
+            _logger.LogInformation("Fetching pricing options for plan ID: {PlanId}, Country ID: {CountryId}", planId, countryId);
+            var options = await _subscriptionService.GetSubscriptionPlanOptionsAsync(planId, countryId);
             return Ok(options);
         }
+
 
         [HttpPost]
         public async Task<ActionResult<SubscriptionResponseDTO>> Subscribe([FromBody] CreateSubscriptionDTO subscriptionDTO, [FromQuery] Guid userId)

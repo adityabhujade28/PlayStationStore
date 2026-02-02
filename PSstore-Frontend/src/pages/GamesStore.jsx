@@ -7,125 +7,87 @@ import GameCard from '../components/GameCard';
 import Pagination from '../components/Pagination';
 import styles from './GamesStore.module.css';
 import apiClient from '../utils/apiClient';
+import { useQuery } from '@tanstack/react-query';
 
 function GamesStore() {
   const { getDecodedToken } = useAuth();
-  const [categories, setCategories] = useState([]);
+  const decoded = getDecodedToken();
+  const userId = decoded?.userId;
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [userCurrency, setUserCurrency] = useState('INR');
-  
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(20);
-  const [paginatedData, setPaginatedData] = useState({
-    items: [],
-    totalCount: 0,
-    pageNumber: 1,
-    pageSize: 20,
-    totalPages: 0,
-    hasNextPage: false,
-    hasPreviousPage: false
+  const pageSize = 20;
+
+  // Categories (cached)
+  const { data: categories = [] } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await apiClient.get('/categories');
+      if (!res.ok) throw new Error('Failed to load categories');
+      return res.json();
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  // User + Country for currency
+  const { data: user } = useQuery({
+    queryKey: ['user', userId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/users/${userId}`);
+      if (!res.ok) throw new Error('Failed to fetch user');
+      return res.json();
+    },
+    enabled: !!userId,
+  });
+
+  const { data: country } = useQuery({
+    queryKey: ['country', user?.countryId],
+    queryFn: async () => {
+      const res = await apiClient.get(`/countries/${user.countryId}`);
+      if (!res.ok) throw new Error('Failed to fetch country');
+      return res.json();
+    },
+    enabled: !!user?.countryId,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  // Paginated games query - key includes filters and page
+  const { data: paginatedData = { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasNextPage: false, hasPreviousPage: false }, isLoading, error } = useQuery({
+    queryKey: ['games', { page: currentPage, pageSize, category: selectedCategory, q: searchQuery, userId }],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        pageNumber: currentPage,
+        pageSize,
+        includeDeleted: 'false' // Hide soft-deleted games from users
+      });
+
+      // Add userId if available
+      if (userId) {
+        params.set('userId', userId);
+      }
+
+      // Add search term if present
+      if (searchQuery) {
+        params.set('searchTerm', searchQuery);
+      }
+
+      // Add category filter if selected
+      if (selectedCategory) {
+        params.set('categoryId', selectedCategory);
+      }
+
+      const res = await apiClient.get(`/games/paged?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to fetch games');
+      return res.json();
+    },
+    keepPreviousData: true,
+    staleTime: 2 * 60 * 1000,
   });
 
   useEffect(() => {
-    fetchCategories();
-    fetchUserCurrency();
-  }, []);
-
-  useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when filters change
+    setCurrentPage(1);
   }, [selectedCategory, searchQuery]);
-
-  useEffect(() => {
-    fetchGames();
-  }, [currentPage, selectedCategory, searchQuery]);
-
-  const fetchCategories = async () => {
-    try {
-      const response = await apiClient.get('/categories');
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch categories:', err);
-    }
-  };
-
-  const fetchUserCurrency = async () => {
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      const response = await apiClient.get(`/users/${userId}`);
-      if (response.ok) {
-        const userData = await response.json();
-        if (userData.countryId) {
-          const countryResponse = await apiClient.get(`/countries/${userData.countryId}`);
-          if (countryResponse.ok) {
-            const countryData = await countryResponse.json();
-            setUserCurrency(countryData.currency);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch user currency:', err);
-    }
-  };
-
-  const fetchGames = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      const decoded = getDecodedToken();
-      const userId = decoded?.userId;
-
-      let endpoint = '';
-      let params = new URLSearchParams({
-        pageNumber: currentPage,
-        pageSize: pageSize,
-        userId: userId || ''
-      });
-
-      if (searchQuery) {
-        // Search with pagination
-        endpoint = `/games/search/paged`;
-        params.set('query', searchQuery);
-      } else if (selectedCategory) {
-        // Category with pagination
-        endpoint = `/games/category/${selectedCategory}/paged`;
-      } else {
-        // All games with pagination
-        endpoint = `/games/paged`;
-      }
-
-      const response = await apiClient.get(`${endpoint}?${params.toString()}`);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch games');
-      }
-
-      const data = await response.json();
-      setPaginatedData(data);
-    } catch (err) {
-      setError(err.message);
-      setPaginatedData({
-        items: [],
-        totalCount: 0,
-        pageNumber: 1,
-        pageSize: 20,
-        totalPages: 0,
-        hasNextPage: false,
-        hasPreviousPage: false
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCategoryChange = (categoryId) => {
     setSelectedCategory(categoryId);
@@ -141,17 +103,16 @@ function GamesStore() {
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const freeGames = paginatedData.items.filter(game => game.freeToPlay);
+  const userCurrency = country?.currency || 'USD';
   const displayTitle = selectedCategory
     ? categories.find(c => c.categoryId === selectedCategory)?.categoryName
     : searchQuery
       ? `Search Results (${paginatedData.totalCount})`
       : 'All Games';
-
   return (
     <>
       <Navbar />
@@ -192,7 +153,7 @@ function GamesStore() {
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>{displayTitle}</h2>
 
-            {loading ? (
+            {isLoading ? (
               <div className={styles.loading}>Loading games...</div>
             ) : paginatedData.items.length === 0 ? (
               <div className={styles.empty}>
@@ -213,7 +174,7 @@ function GamesStore() {
                   hasNextPage={paginatedData.hasNextPage}
                   hasPreviousPage={paginatedData.hasPreviousPage}
                   onPageChange={handlePageChange}
-                  isLoading={loading}
+                  isLoading={isLoading}
                 />
               </>
             )}

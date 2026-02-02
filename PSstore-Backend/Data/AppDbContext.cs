@@ -75,6 +75,8 @@ namespace PSstore.Data
             {
                 entity.HasKey(gc => gc.GameCountryId);
                 entity.HasIndex(gc => new { gc.GameId, gc.CountryId }).IsUnique();
+                entity.HasIndex(gc => gc.GameId);
+                entity.HasIndex(gc => gc.CountryId);
                 entity.Property(gc => gc.Price).HasColumnType("decimal(10,2)");
 
                 entity.HasOne(gc => gc.Game)
@@ -98,6 +100,8 @@ namespace PSstore.Data
             modelBuilder.Entity<GameCategory>(entity =>
             {
                 entity.HasKey(gc => new { gc.GameId, gc.CategoryId });
+                entity.HasIndex(gc => gc.GameId);
+                entity.HasIndex(gc => gc.CategoryId);
 
                 entity.HasOne(gc => gc.Game)
                     .WithMany(g => g.GameCategories)
@@ -121,6 +125,8 @@ namespace PSstore.Data
             {
                 entity.HasKey(spc => spc.SubscriptionPlanCountryId);
                 entity.HasIndex(spc => new { spc.SubscriptionId, spc.CountryId, spc.DurationMonths }).IsUnique();
+                entity.HasIndex(spc => spc.SubscriptionId);
+                entity.HasIndex(spc => spc.CountryId);
                 entity.Property(spc => spc.Price).HasColumnType("decimal(10,2)");
 
                 entity.HasOne(spc => spc.SubscriptionPlan)
@@ -154,6 +160,7 @@ namespace PSstore.Data
             modelBuilder.Entity<UserSubscriptionPlan>(entity =>
             {
                 entity.HasKey(usp => usp.UserSubscriptionId);
+                entity.HasIndex(usp => usp.UserId);
 
                 entity.HasOne(usp => usp.User)
                     .WithMany(u => u.UserSubscriptionPlans)
@@ -164,12 +171,15 @@ namespace PSstore.Data
                     .WithMany(spc => spc.UserSubscriptionPlans)
                     .HasForeignKey(usp => usp.SubscriptionPlanCountryId)
                     .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasIndex(usp => usp.SubscriptionPlanCountryId);
             });
 
             // Configure UserPurchaseGame (IMMUTABLE - Restrict delete)
             modelBuilder.Entity<UserPurchaseGame>(entity =>
             {
                 entity.HasKey(upg => upg.PurchaseId);
+                entity.HasIndex(upg => upg.UserId);
                 entity.Property(upg => upg.PurchasePrice).HasColumnType("decimal(10,2)");
 
                 entity.HasOne(upg => upg.User)
@@ -181,6 +191,8 @@ namespace PSstore.Data
                     .WithMany(g => g.UserPurchases)
                     .HasForeignKey(upg => upg.GameId)
                     .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasIndex(upg => upg.GameId);
             });
 
             // Configure Cart
@@ -198,6 +210,7 @@ namespace PSstore.Data
             modelBuilder.Entity<CartItem>(entity =>
             {
                 entity.HasKey(ci => ci.CartItemId);
+                entity.HasIndex(ci => ci.CartId);
                 entity.Property(ci => ci.UnitPrice).HasColumnType("decimal(10,2)");
                 entity.Property(ci => ci.TotalPrice).HasColumnType("decimal(10,2)");
 
@@ -210,6 +223,8 @@ namespace PSstore.Data
                     .WithMany(g => g.CartItems)
                     .HasForeignKey(ci => ci.GameId)
                     .OnDelete(DeleteBehavior.Restrict);
+                
+                entity.HasIndex(ci => ci.GameId);
             });
 
             // Global query filters for soft delete

@@ -233,6 +233,8 @@ namespace PSstore.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("GameId");
+
                     b.ToTable("GameCategories");
                 });
 
@@ -254,6 +256,8 @@ namespace PSstore.Migrations
                     b.HasKey("GameCountryId");
 
                     b.HasIndex("CountryId");
+
+                    b.HasIndex("GameId");
 
                     b.HasIndex("GameId", "CountryId")
                         .IsUnique();
@@ -340,6 +344,8 @@ namespace PSstore.Migrations
                     b.HasKey("SubscriptionPlanCountryId");
 
                     b.HasIndex("CountryId");
+
+                    b.HasIndex("SubscriptionId");
 
                     b.HasIndex("SubscriptionId", "CountryId", "DurationMonths")
                         .IsUnique();

@@ -190,11 +190,12 @@ namespace PSstore.Repositories
 
         public async Task SoftDeleteAsync(Guid gameId)
         {
-            var game = await _dbSet.FindAsync(gameId);
+            var game = await _dbSet.IgnoreQueryFilters().FirstOrDefaultAsync(g => g.GameId == gameId);
             if (game != null)
             {
                 game.IsDeleted = true;
                 game.DeletedAt = DateTime.UtcNow;
+                game.UpdatedAt = DateTime.UtcNow;
                 await SaveChangesAsync();
             }
         }
@@ -206,6 +207,7 @@ namespace PSstore.Repositories
             {
                 game.IsDeleted = false;
                 game.DeletedAt = null;
+                game.UpdatedAt = DateTime.UtcNow;
                 await SaveChangesAsync();
                 return true;
             }

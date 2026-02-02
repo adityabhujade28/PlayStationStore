@@ -32,12 +32,39 @@ namespace PSstore.DTOs
 
         public bool FreeToPlay { get; set; } = false;
 
+        /// <summary>
+        /// Legacy price field - used as fallback if Pricing array is not provided.
+        /// When Pricing array is provided, BasePrice will be set from India (IN) pricing.
+        /// </summary>
         [Range(0, double.MaxValue)]
         public decimal Price { get; set; }
 
         public bool IsMultiplayer { get; set; } = false;
 
+        /// <summary>
+        /// URL for the game image. This will be saved in the Games table ImageUrl column.
+        /// </summary>
+        [MaxLength(2000)]
+        public string? ImageUrl { get; set; }
+
         public List<int> CategoryIds { get; set; } = new List<int>();
+
+        /// <summary>
+        /// Per-country/region-wise pricing. This will be saved in GameCountries table.
+        /// If provided, India (IN) price will be used as BasePrice in Games table.
+        /// If India price not found, first price will be used as BasePrice.
+        /// </summary>
+        public List<GamePricingInput>? Pricing { get; set; }
+    }
+
+    // Input for per-country pricing
+    public class GamePricingInput
+    {
+        [Required]
+        public Guid CountryId { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal Price { get; set; }
     }
 
     // Update game (Admin)

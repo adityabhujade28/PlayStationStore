@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import Pagination from '../../components/Pagination';
 import apiClient from '../../utils/apiClient';
 import styles from './AdminGames.module.css';
@@ -9,7 +9,8 @@ function AdminGames() {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize] = useState(25);
-    
+    const location = useLocation();
+
     const [paginatedData, setPaginatedData] = useState({
         items: [],
         totalCount: 0,
@@ -22,10 +23,11 @@ function AdminGames() {
 
     useEffect(() => {
         fetchGames();
-    }, [currentPage]);
+    }, [currentPage, location.key]); // Re-fetch when location changes
 
     const fetchGames = async () => {
         setLoading(true);
+        console.log('[AdminGames] Fetching games - Page:', currentPage);
         try {
             const params = new URLSearchParams({
                 pageNumber: currentPage,
@@ -37,6 +39,7 @@ function AdminGames() {
             const response = await apiClient.get(`/games/paged?${params.toString()}`);
             if (response.ok) {
                 const data = await response.json();
+                console.log('[AdminGames] Received games:', data.items.length, 'Total:', data.totalCount);
                 setPaginatedData(data);
             } else {
                 setError('Failed to fetch games');
@@ -67,12 +70,21 @@ function AdminGames() {
 
     const handleRestore = async (gameId) => {
         try {
+            console.log('Attempting to restore game:', gameId);
             const response = await apiClient.post(`/games/${gameId}/restore`);
+            console.log('Restore response status:', response.status);
+            
             if (response.ok) {
-                fetchGames();
+                console.log('Game restored successfully');
+                fetchGames(); // Refresh the list
+            } else {
+                const errorData = await response.text();
+                console.error('Restore failed:', response.status, errorData);
+                alert(`Failed to restore game. Status: ${response.status}`);
             }
         } catch (error) {
             console.error("Error restoring game:", error);
+            alert('Error restoring game. Check console for details.');
         }
     };
 
@@ -107,53 +119,84 @@ function AdminGames() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {paginatedData.items.map((game) => (
-                                    <tr key={game.gameId}>
-                                        <td>
-                                            <div className={styles.thumbnailContainer}>
-                                                {game.imageUrl ? (
-                                                    <img src={game.imageUrl} alt={game.gameName} className={styles.thumbnail} />
+                                {paginatedData.items.map((game) => {
+                                    // DEBUG: Inspect isDeleted property
+                                    // console.log(`Game: ${game.gameName}, isDeleted: ${game.isDeleted}, type: ${typeof game.isDeleted}`); 
+                                    return (
+                                        <tr key={game.gameId} style={{ opacity: game.isDeleted ? 0.7 : 1 }}>
+                                            <td>
+                                                <div className={styles.thumbnailContainer}>
+                                                    {game.imageUrl ? (
+                                                        <img src={game.imageUrl} alt={game.gameName} className={styles.thumbnail} />
+                                                    ) : (
+                                                        <div className={styles.placeholderImage}>No Image</div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td>{game.gameName}</td>
+                                            <td>{game.publishedBy}</td>
+                                            <td className={styles.price}>
+                                                {game.freeToPlay ? 'Free' : `₹${game.price}`}
+                                            </td>
+                                            <td>
+                                                {game.isDeleted ? (
+                                                    <span style={{
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: '500',
+                                                        background: '#4a1a1a',
+                                                        color: '#ff6b6b',
+                                                        border: '1px solid #ff6b6b'
+                                                    }}>
+                                                        🗑️ Deleted
+                                                    </span>
                                                 ) : (
-                                                    <div className={styles.placeholderImage}>No Image</div>
+                                                    <span style={{
+                                                        padding: '0.25rem 0.75rem',
+                                                        borderRadius: '12px',
+                                                        fontSize: '0.85rem',
+                                                        fontWeight: '500',
+                                                        background: '#1a472a',
+                                                        color: '#4db8ff',
+                                                        border: '1px solid #4db8ff'
+                                                    }}>
+                                                        ✓ Active
+                                                    </span>
                                                 )}
-                                            </div>
-                                        </td>
-                                        <td>{game.gameName}</td>
-                                        <td>{game.publishedBy}</td>
-                                        <td className={styles.price}>
-                                            {game.freeToPlay ? 'Free' : `₹${game.price}`}
-                                        </td>
-                                        <td>
-                                            {game.isDeleted ? (
-                                                <span style={{ color: '#ff6b6b' }}>Deleted</span>
-                                            ) : (
-                                                <span style={{ color: '#4db8ff' }}>Active</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <Link to={`/admin/games/edit/${game.gameId}`} className={`${styles.actionButton} ${styles.editBtn}`} style={{ display: 'inline-block', textDecoration: 'none' }}>Edit</Link>
+                                            </td>
+                                            <td>
+                                                <Link to={`/admin/games/edit/${game.gameId}`} className={`${styles.actionButton} ${styles.editBtn}`} style={{ display: 'inline-block', textDecoration: 'none' }}>Edit</Link>
 
-                                            {!game.isDeleted ? (
-                                                <button
-                                                    onClick={() => handleDelete(game.gameId)}
-                                                    className={`${styles.actionButton} ${styles.deleteBtn}`}
-                                                >
-                                                    Delete
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    onClick={() => handleRestore(game.gameId)}
-                                                    className={`${styles.actionButton}`}
-                                                    style={{ backgroundColor: '#0070d1', color: 'white' }}
-                                                >
-                                                    Restore
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                                {!game.isDeleted ? (
+                                                    <button
+                                                        onClick={() => handleDelete(game.gameId)}
+                                                        className={`${styles.actionButton} ${styles.deleteBtn}`}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleRestore(game.gameId)}
+                                                        className={`${styles.actionButton}`}
+                                                        style={{ backgroundColor: '#0070d1', color: 'white' }}
+                                                    >
+                                                        Restore
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
+
+                        {/* No Games Message */}
+                        {paginatedData.items.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
+                                <p>No games found. Click "Add New Game" to create one.</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Pagination Controls */}

@@ -174,7 +174,7 @@ function GameDetails() {
                   <div className={styles.freePrice}>Free</div>
                 ) : !game.canAccess && (
                   <div className={styles.price}>
-                    {game.price ? formatPrice(game.price, userCurrency) : 'Price TBA'}
+                    {game.price !== null && game.price !== undefined ? formatPrice(game.price, userCurrency) : 'Price TBA'}
                   </div>
                 )}
               </div>
