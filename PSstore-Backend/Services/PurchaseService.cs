@@ -95,6 +95,7 @@ namespace PSstore.Services
                 Success = true,
                 Message = "Game purchased successfully!",
                 PurchaseId = purchase.PurchaseId,
+                UserId = userId,
                 GameId = purchase.GameId,
                 GameName = game.GameName,
                 PurchasePrice = purchase.PurchasePrice,

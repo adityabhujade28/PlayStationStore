@@ -86,6 +86,12 @@ namespace PSstore.Services
 
         public async Task<bool> SoftDeleteUserAsync(Guid userId)
         {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+            {
+                return false;
+            }
+
             await _userRepository.SoftDeleteAsync(userId);
             return true;
         }

@@ -89,10 +89,12 @@ namespace PSstore.Services
                 Success = true,
                 Message = "Subscription activated successfully!",
                 UserSubscriptionId = userSubscription.UserSubscriptionId,
+                UserId = userId,
                 PlanStartDate = userSubscription.PlanStartDate,
                 PlanEndDate = userSubscription.PlanEndDate,
                 DurationMonths = planCountry.DurationMonths,
-                Price = planCountry.Price
+                Price = planCountry.Price,
+                IsActive = true
             };
         }
 
@@ -150,6 +152,9 @@ namespace PSstore.Services
                 SubscriptionPlanCountryId = o.SubscriptionPlanCountryId,
                 SubscriptionId = o.SubscriptionId,
                 CountryId = o.CountryId,
+                CountryName = o.Country?.CountryName ?? string.Empty,
+                CountryCode = o.Country?.CountryCode ?? string.Empty,
+                Currency = o.Country?.Currency ?? string.Empty,
                 DurationMonths = o.DurationMonths,
                 Price = o.Price
             });

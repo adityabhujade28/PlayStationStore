@@ -16,6 +16,10 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure PORT for Railway (Railway sets PORT environment variable)
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
 builder.Host.UseSerilog(); // Use Serilog for logging
 
 // Add services to the container.
@@ -25,9 +29,12 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     }); 
 
-// Configure SQL Server
+// Configure MySQL - Use Railway's DATABASE_URL if available, otherwise use DefaultConnection
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") 
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
 // Register Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -94,12 +101,16 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173","http://localhost:4173") // Vite uses 5173
+        // Get allowed origins from environment variable (comma-separated) or use defaults
+        var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")??
+            "http://localhost:3000,http://localhost:5173,http://localhost:4173";
+        
+        policy.WithOrigins(allowedOrigins.Split(','))
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
     });
-});
+});    
 
 var app = builder.Build();
 
@@ -136,7 +147,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection in development (Railway handles TLS at edge)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();

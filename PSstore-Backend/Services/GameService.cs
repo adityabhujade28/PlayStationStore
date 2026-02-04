@@ -254,6 +254,10 @@ namespace PSstore.Services
 
         public async Task<bool> SoftDeleteGameAsync(Guid gameId)
         {
+            var game = await _gameRepository.GetByIdAsync(gameId);
+            if (game == null)
+                return false;
+
             await _gameRepository.SoftDeleteAsync(gameId);
             return true;
         }
