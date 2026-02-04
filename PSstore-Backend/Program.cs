@@ -34,7 +34,8 @@ var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
     ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 42))));
+
 
 // Register Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();

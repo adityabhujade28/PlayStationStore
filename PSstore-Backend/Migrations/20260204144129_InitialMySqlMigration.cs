@@ -6,91 +6,112 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace PSstore.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialWithGuids : Migration
+    public partial class InitialMySqlMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AlterDatabase()
+                .Annotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.CreateTable(
                 name: "Admins",
                 columns: table => new
                 {
-                    AdminId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AdminEmail = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    AdminPassword = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    AdminId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    AdminEmail = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AdminPassword = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Admins", x => x.AdminId);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
                 {
-                    CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CategoryName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CategoryName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.CategoryId);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Games",
                 columns: table => new
                 {
-                    GameId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GameName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    PublishedBy = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    ReleaseDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    FreeToPlay = table.Column<bool>(type: "bit", nullable: false),
+                    GameId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    GameName = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    PublishedBy = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ReleaseDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    FreeToPlay = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     BasePrice = table.Column<decimal>(type: "decimal(10,2)", nullable: true),
-                    IsMultiplayer = table.Column<bool>(type: "bit", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    IsMultiplayer = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    ImageUrl = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Games", x => x.GameId);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Regions",
                 columns: table => new
                 {
-                    RegionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RegionCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    RegionName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    RegionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    RegionCode = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RegionName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Regions", x => x.RegionId);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "SubscriptionPlans",
                 columns: table => new
                 {
-                    SubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SubscriptionType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    SubscriptionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    SubscriptionType = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SubscriptionPlans", x => x.SubscriptionId);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "GameCategories",
                 columns: table => new
                 {
-                    GameId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CategoryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    GameId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CategoryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci")
                 },
                 constraints: table =>
                 {
@@ -107,18 +128,23 @@ namespace PSstore.Migrations
                         principalTable: "Games",
                         principalColumn: "GameId",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Countries",
                 columns: table => new
                 {
-                    CountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CountryCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    CountryName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    RegionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Currency = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Timezone = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CountryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CountryCode = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CountryName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RegionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    Currency = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Timezone = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     TaxRate = table.Column<decimal>(type: "decimal(5,4)", nullable: true)
                 },
                 constraints: table =>
@@ -130,14 +156,15 @@ namespace PSstore.Migrations
                         principalTable: "Regions",
                         principalColumn: "RegionId",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "GameSubscriptions",
                 columns: table => new
                 {
-                    GameId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    GameId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    SubscriptionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci")
                 },
                 constraints: table =>
                 {
@@ -154,15 +181,16 @@ namespace PSstore.Migrations
                         principalTable: "SubscriptionPlans",
                         principalColumn: "SubscriptionId",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "GameCountries",
                 columns: table => new
                 {
-                    GameCountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GameId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    GameCountryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    GameId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CountryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Price = table.Column<decimal>(type: "decimal(10,2)", nullable: false)
                 },
                 constraints: table =>
@@ -180,15 +208,16 @@ namespace PSstore.Migrations
                         principalTable: "Games",
                         principalColumn: "GameId",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "SubscriptionPlanCountries",
                 columns: table => new
                 {
-                    SubscriptionPlanCountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    SubscriptionPlanCountryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    SubscriptionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CountryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     DurationMonths = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(10,2)", nullable: false)
                 },
@@ -207,22 +236,26 @@ namespace PSstore.Migrations
                         principalTable: "SubscriptionPlans",
                         principalColumn: "SubscriptionId",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Users",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    UserPassword = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Age = table.Column<int>(type: "int", nullable: true),
-                    UserEmail = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    SubscriptionStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    UserName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UserPassword = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Age = table.Column<int>(type: "int", nullable: false),
+                    UserEmail = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    CountryId = table.Column<Guid>(type: "char(36)", nullable: true, collation: "ascii_general_ci")
                 },
                 constraints: table =>
                 {
@@ -233,17 +266,18 @@ namespace PSstore.Migrations
                         principalTable: "Countries",
                         principalColumn: "CountryId",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "Carts",
                 columns: table => new
                 {
-                    CartId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CartId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     TotalAmount = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -254,17 +288,18 @@ namespace PSstore.Migrations
                         principalTable: "Users",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "UserPurchaseGames",
                 columns: table => new
                 {
-                    PurchaseId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GameId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PurchaseId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    GameId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     PurchasePrice = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    PurchaseDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    PurchaseDate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -281,23 +316,24 @@ namespace PSstore.Migrations
                         principalTable: "Users",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "UserSubscriptionPlans",
                 columns: table => new
                 {
-                    UserSubscriptionId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    SubscriptionPlanCountryId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PlanStartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    PlanEndDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    UserSubscriptionId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    UserId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    SubscriptionPlanCountryId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    PlanStartDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    PlanEndDate = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserSubscriptionPlans", x => x.UserSubscriptionId);
                     table.ForeignKey(
-                        name: "FK_UserSubscriptionPlans_SubscriptionPlanCountries_SubscriptionPlanCountryId",
+                        name: "FK_UserSubscriptionPlans_SubscriptionPlanCountries_Subscription~",
                         column: x => x.SubscriptionPlanCountryId,
                         principalTable: "SubscriptionPlanCountries",
                         principalColumn: "SubscriptionPlanCountryId",
@@ -308,19 +344,20 @@ namespace PSstore.Migrations
                         principalTable: "Users",
                         principalColumn: "UserId",
                         onDelete: ReferentialAction.Cascade);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
                 name: "CartItems",
                 columns: table => new
                 {
-                    CartItemId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CartId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    GameId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CartItemId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    CartId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
+                    GameId = table.Column<Guid>(type: "char(36)", nullable: false, collation: "ascii_general_ci"),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
                     TotalPrice = table.Column<decimal>(type: "decimal(10,2)", nullable: false),
-                    AddedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    AddedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -337,7 +374,8 @@ namespace PSstore.Migrations
                         principalTable: "Games",
                         principalColumn: "GameId",
                         onDelete: ReferentialAction.Restrict);
-                });
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CartItems_CartId",
@@ -371,9 +409,19 @@ namespace PSstore.Migrations
                 column: "CategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_GameCategories_GameId",
+                table: "GameCategories",
+                column: "GameId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_GameCountries_CountryId",
                 table: "GameCountries",
                 column: "CountryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_GameCountries_GameId",
+                table: "GameCountries",
+                column: "GameId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_GameCountries_GameId_CountryId",
@@ -398,7 +446,12 @@ namespace PSstore.Migrations
                 column: "CountryId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SubscriptionPlanCountries_SubscriptionId_CountryId_DurationMonths",
+                name: "IX_SubscriptionPlanCountries_SubscriptionId",
+                table: "SubscriptionPlanCountries",
+                column: "SubscriptionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SubscriptionPlanCountries_SubscriptionId_CountryId_DurationM~",
                 table: "SubscriptionPlanCountries",
                 columns: new[] { "SubscriptionId", "CountryId", "DurationMonths" },
                 unique: true);
