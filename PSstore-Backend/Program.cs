@@ -102,14 +102,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        // Get allowed origins from environment variable (comma-separated) or use defaults
-        var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")??
-            "http://localhost:3000,http://localhost:5173,http://localhost:4173";
-        
-        policy.WithOrigins(allowedOrigins.Split(','))
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        policy.SetIsOriginAllowed(origin =>
+        {
+            // Allow localhost for development
+            if (origin.StartsWith("http://localhost:")) return true;
+            
+            // Allow all Vercel deployments
+            if (origin.EndsWith(".vercel.app")) return true;
+            
+            return false;
+        })
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials();
     });
 });    
 
